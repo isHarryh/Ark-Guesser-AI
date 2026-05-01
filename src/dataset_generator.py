@@ -468,6 +468,7 @@ class DatasetGenerator:
         task_queue = mp.Queue()
         result_queue = mp.Queue()
         process_list: list[mp.Process] = []
+        parsed_entries: dict[str, dict] = {}
 
         for _ in range(self._num_processes):
             p = mp.Process(target=self._mp_worker, args=(task_queue, result_queue))
@@ -480,13 +481,14 @@ class DatasetGenerator:
         for _ in range(self._num_processes):
             task_queue.put(None)
 
+        force_terminated = False
         for _ in filelist:
-            while True:
+            while not force_terminated:
                 try:
                     filename, entry, err = result_queue.get(timeout=0.1)
                     if err is None:
                         print(f"Parsed {filename}: {entry}")
-                        dataset["data"].append(entry)
+                        parsed_entries[filename] = entry
                     else:
                         print(f"Failed to parse {filename}: {err}")
                     break
@@ -498,11 +500,13 @@ class DatasetGenerator:
                         p.terminate()
                     task_queue.cancel_join_thread()
                     result_queue.cancel_join_thread()
+                    force_terminated = True
 
-                    return dataset
+        if not force_terminated:
+            for p in process_list:
+                p.join()
 
-        for p in process_list:
-            p.join()
+        dataset["data"] = [parsed_entries[name] for name in filelist if name in parsed_entries]
 
         return dataset
 
