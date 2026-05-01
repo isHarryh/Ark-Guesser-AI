@@ -6,7 +6,7 @@ import cv2
 import keyboard
 import numpy as np
 import pydirectinput as pdi
-from PIL import ImageGrab
+from PIL import Image, ImageGrab
 
 from src.utils import imread, TemplateMatch
 
@@ -39,6 +39,12 @@ def click(x: int, y: int, *, jitter: int = 2, reset_x: int = -100, reset_y: int 
     reset_rand_x = reset_x + np.random.randint(-jitter, jitter + 1)
     reset_rand_y = reset_y + np.random.randint(-jitter, jitter + 1)
     pdi.moveTo(reset_rand_x, reset_rand_y)
+
+
+def save_jpeg(image: cv2.typing.MatLike, path: str, *, quality: int = 90, optimize: bool = True, subsampling: int = 0):
+    img_pil = Image.fromarray(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+    # https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html#jpeg
+    img_pil.save(path, format="JPEG", quality=quality, optimize=optimize, subsampling=subsampling)
 
 
 def loop(
@@ -142,19 +148,19 @@ def loop(
                 print("\033[96m  Left won!\033[0m" if left_win else "\033[96m  Right won!\033[0m")
                 if save_screenshot:
                     time_str = time.strftime("%Y%m%d_%H%M%S")
-                    filename = os.path.join(
+                    file_path = os.path.join(
                         save_screen_shot_dir,
                         f"{'L' if left_win else 'R'}_{time_str}.png",
                     )
-                    print(f"  Saving screenshot to {filename}")
-                    cv2.imwrite(filename, last_round_screen)
+                    print(f"  Saving screenshot to {file_path}")
+                    save_jpeg(last_round_screen, file_path)
                     time.sleep(5)
-                    alt_filename = os.path.join(
+                    rank_file_path = os.path.join(
                         save_screen_shot_dir,
                         f"Rank_{'L' if left_win else 'R'}_{time_str}.png",
                     )
-                    cv2.imwrite(alt_filename, screenshot())
-                    print(f"  Saving alternative screenshot to {alt_filename}")
+                    save_jpeg(screenshot(), rank_file_path)
+                    print(f"  Saving ranking screenshot to {rank_file_path}")
                 last_round_screen = None
                 last_round_time = 0
                 last_okay_time = time.time()
