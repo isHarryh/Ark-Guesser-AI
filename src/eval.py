@@ -1,6 +1,8 @@
 import torch
 from torch.utils.data import DataLoader
+
 import matplotlib.pyplot as plt
+from matplotlib import ticker
 
 from src.dataset import RawEvalArkGuesserDataset
 from src.model import ArkGuesserModelV0
@@ -280,7 +282,7 @@ def visualize(model_stats: dict, human_stats: dict, k: int = 2):
     ax.set_xticks(x)
     ax.set_xticklabels(group_labels)
     ax.legend(loc="center left", bbox_to_anchor=(1, 0.5))
-    ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda y, _: f"{y:.1%}"))
+    ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda y, _: f"{y:.1%}"))
     ax.set_ylim(0, 1)
 
     plt.tight_layout()

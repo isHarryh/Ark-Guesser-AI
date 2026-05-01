@@ -6,6 +6,9 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, random_split
 
+import matplotlib.pyplot as plt
+from matplotlib import ticker, axes
+
 from src.dataset import RawArkGuesserDataset, AugArkGuesserDataset
 from src.model import ArkGuesserModelV0
 
@@ -67,8 +70,6 @@ def visualize_records(records: list[TrainingRecord], output_path: str = "outputs
     if not records:
         return
 
-    import matplotlib.pyplot as plt
-
     epochs = [r.epoch for r in records]
     train_losses = [r.train_loss for r in records]
     valid_losses = [r.valid_loss for r in records]
@@ -76,15 +77,15 @@ def visualize_records(records: list[TrainingRecord], output_path: str = "outputs
     valid_accs = [r.valid_acc for r in records]
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
-    assert isinstance(ax1, plt.Axes) and isinstance(ax2, plt.Axes)
+    assert isinstance(ax1, axes.Axes) and isinstance(ax2, axes.Axes)
 
     # Left subplot for losses
-    ax1.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: round(x)))
+    ax1.xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: round(x)))
     ax1.plot(epochs, train_losses, label="Train Loss", color="blue", marker="x")
     ax1.plot(epochs, valid_losses, label="Valid Loss", color="red", marker="*")
     ax1.set_xlabel("Epoch")
     ax1.set_ylabel("Loss")
-    ax1.yaxis.set_major_formatter(plt.FuncFormatter(lambda y, _: f"{y:.4f}"))
+    ax1.yaxis.set_major_formatter(ticker.FuncFormatter(lambda y, _: f"{y:.4f}"))
     ax1.legend(loc="upper left")
     ax1.set_title("Loss")
 
@@ -98,12 +99,12 @@ def visualize_records(records: list[TrainingRecord], output_path: str = "outputs
     )
 
     # Right subplot for accuracies
-    ax2.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: round(x)))
+    ax2.xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: round(x)))
     ax2.plot(epochs, train_accs, label="Train Accuracy", color="blue", marker="x", linestyle="--")
     ax2.plot(epochs, valid_accs, label="Valid Accuracy", color="red", marker="*", linestyle="--")
     ax2.set_xlabel("Epoch")
     ax2.set_ylabel("Accuracy")
-    ax2.yaxis.set_major_formatter(plt.FuncFormatter(lambda y, _: f"{y:.2%}"))
+    ax2.yaxis.set_major_formatter(ticker.FuncFormatter(lambda y, _: f"{y:.2%}"))
     ax2.legend(loc="upper left")
     ax2.set_title("Accuracy")
 
