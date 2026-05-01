@@ -1,0 +1,14 @@
+{
+    "black-formatter.args": [ "-l", "120" ],
+    "editor.formatOnSave": true,
+    "cSpell.words": [
+        "allin",
+        "arknights",
+        "imread",
+        "imshow",
+        "imwrite"
+    ],
+    "[json]": {
+        "editor.formatOnSave": false
+    },
+}

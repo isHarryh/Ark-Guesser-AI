@@ -1,0 +1,36 @@
+[project]
+name = "ark-guesser-ai"
+version = "0.2.0"
+description = ""
+authors = [{ name = "Harry Huang", email = "harryhuang2652@qq.com" }]
+readme = "README.md"
+requires-python = ">=3.12,<4"
+dependencies = [
+    "keyboard (~=0.13)",
+    "matplotlib (~=3.10)",
+    "opencv-python (~=4.10)",
+    "pillow (~=11.3)",
+    "pydirectinput (>=1.0.4,<2.0.0)",
+    "pytesseract (~=0.3)",
+    "torch (~=2.7)",
+]
+
+[tool.poetry]
+package-mode = false
+
+[tool.poetry.dependencies]
+torch = { version = "~=2.7", source = "PyTorch-Cuda126" }
+
+[[tool.poetry.source]]
+name = "PyPI-Tsinghua"
+url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+priority = "primary"
+
+[[tool.poetry.source]]
+name = "PyTorch-Cuda126"
+url = "https://download.pytorch.org/whl/cu126"
+priority = "explicit"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
