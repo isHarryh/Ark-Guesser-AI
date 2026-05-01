@@ -7,6 +7,8 @@ import multiprocessing as mp
 import cv2
 import numpy as np
 
+from src.utils import imread
+
 
 def raise_for_ratio(image: cv2.typing.MatLike, target_ratio: float = 16 / 9, *, tolerance: float = 0.01):
     """Raises an error if the image aspect ratio differs from the target ratio (with tolerance)."""
@@ -34,7 +36,7 @@ class AvatarImageFeature:
     MARCHER_INSTANCE = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
 
     def __init__(self, image: cv2.typing.MatLike):
-        self.kp, self.des = self.DETECTER_INSTANCE.detectAndCompute(image, None)
+        self.kp, self.des = self.DETECTER_INSTANCE.detectAndCompute(image, None)  # type: ignore
 
     def is_empty(self):
         return self.des is None or len(self.des) == 0
@@ -53,7 +55,7 @@ class AvatarImageFeature:
 AVATARS_DIR = "assets/avatars"
 
 AVATARS: dict[str, AvatarImageFeature] = {
-    os.path.splitext(filename)[0]: AvatarImageFeature(cv2.imread(os.path.join(AVATARS_DIR, filename), cv2.IMREAD_COLOR))
+    os.path.splitext(filename)[0]: AvatarImageFeature(imread(os.path.join(AVATARS_DIR, filename)))
     for filename in os.listdir(AVATARS_DIR)
     if filename.endswith(".png")
 }
@@ -66,7 +68,7 @@ class NumberImageHash:
     @staticmethod
     def _average_hash(gray: cv2.typing.MatLike, hash_size: int = 32):
         resized = cv2.resize(gray, (hash_size, hash_size), interpolation=cv2.INTER_AREA)
-        avg = np.mean(resized)
+        avg = np.mean(resized)  # type: ignore
         bits = "".join(["1" if pixel > avg else "0" for pixel in resized.flatten()])
         hex_hash = "{:0{}x}".format(int(bits, 2), len(bits) // 4)
         return hex_hash
@@ -74,7 +76,7 @@ class NumberImageHash:
     @staticmethod
     def _perceptual_hash(gray: cv2.typing.MatLike, hash_size: int = 8, high_freq_factor: int = 4):
         resized = cv2.resize(gray, (hash_size * high_freq_factor, hash_size * high_freq_factor))
-        dct = cv2.dct(np.float32(resized))
+        dct = cv2.dct(np.float32(resized))  # type: ignore
         dct_low_freq = dct[:hash_size, :hash_size]
         dct_flatten = dct_low_freq.flatten()
         diff = dct_low_freq > np.mean(dct_flatten[1:])
@@ -92,7 +94,7 @@ class NumberImageHash:
 NUMBERS_DIR = "assets/numbers"
 
 NUMBERS = {
-    i: NumberImageHash(cv2.imread(os.path.join(NUMBERS_DIR, f"number_{i}.png"), cv2.IMREAD_GRAYSCALE))
+    i: NumberImageHash(imread(os.path.join(NUMBERS_DIR, f"number_{i}.png"), flags=cv2.IMREAD_GRAYSCALE))
     for i in range(10)
 }
 
@@ -285,7 +287,7 @@ class GameRoundRecognizer:
                 # Second row: recognized avatar from file
                 avatar_path = os.path.join(AVATARS_DIR, member_name + ".png")
                 if os.path.exists(avatar_path):
-                    avatar_img = cv2.imread(avatar_path)
+                    avatar_img = imread(avatar_path)
                     avatar_resized = cv2.resize(avatar_img, img_size)
                     canvas[y : y + row_height, col_x : col_x + img_size[1]] = avatar_resized
                 y += row_height
@@ -447,9 +449,7 @@ class DatasetGenerator:
         return result
 
     def _parse_common(self, image_path: str, winner: int):
-        image = cv2.imread(image_path, cv2.IMREAD_COLOR)
-        assert image is not None, f"Failed to read image: {image_path}"
-        recognizer = GameRoundRecognizer(image)
+        recognizer = GameRoundRecognizer(imread(image_path))
         member_data = recognizer.get_member_data()
 
         if len(member_data[0]) == 0 or len(member_data[1]) == 0:
@@ -468,9 +468,7 @@ class DatasetGenerator:
         }
 
     def _parse_eval(self, image_path: str):
-        image = cv2.imread(image_path, cv2.IMREAD_COLOR)
-        assert image is not None, f"Failed to read image: {image_path}"
-        recognizer = GameRankRecognizer(image)
+        recognizer = GameRankRecognizer(imread(image_path))
         rank_data = recognizer.get_rank_data()
         if rank_data["human_correct"] + rank_data["human_wrong"] + rank_data["human_neutral"] == 0:
             raise ValueError("No human player rank data recognized")

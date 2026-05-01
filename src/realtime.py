@@ -8,17 +8,19 @@ import numpy as np
 import pydirectinput as pdi
 from PIL import ImageGrab
 
+from src.utils import imread
+
 TEMPLATES_PATH = "assets/templates"
 
 TEMPLATES = {
-    "round_ready_1": cv2.imread(os.path.join(TEMPLATES_PATH, "token_round_ready_1.png"), cv2.IMREAD_COLOR),
-    "round_ready_2": cv2.imread(os.path.join(TEMPLATES_PATH, "token_round_ready_2.png"), cv2.IMREAD_COLOR),
-    "result_win": cv2.imread(os.path.join(TEMPLATES_PATH, "token_result_win.png"), cv2.IMREAD_COLOR),
-    "result_lose": cv2.imread(os.path.join(TEMPLATES_PATH, "token_result_lose.png"), cv2.IMREAD_COLOR),
-    "button_start": cv2.imread(os.path.join(TEMPLATES_PATH, "token_button_start.png"), cv2.IMREAD_COLOR),
-    "button_back": cv2.imread(os.path.join(TEMPLATES_PATH, "token_button_back.png"), cv2.IMREAD_COLOR),
-    "game_mode_2": cv2.imread(os.path.join(TEMPLATES_PATH, "token_game_mode_2.png"), cv2.IMREAD_COLOR),
-    "match_mode_3": cv2.imread(os.path.join(TEMPLATES_PATH, "token_match_mode_3.png"), cv2.IMREAD_COLOR),
+    "round_ready_1": imread(os.path.join(TEMPLATES_PATH, "token_round_ready_1.png")),
+    "round_ready_2": imread(os.path.join(TEMPLATES_PATH, "token_round_ready_2.png")),
+    "result_win": imread(os.path.join(TEMPLATES_PATH, "token_result_win.png")),
+    "result_lose": imread(os.path.join(TEMPLATES_PATH, "token_result_lose.png")),
+    "button_start": imread(os.path.join(TEMPLATES_PATH, "token_button_start.png")),
+    "button_back": imread(os.path.join(TEMPLATES_PATH, "token_button_back.png")),
+    "game_mode_2": imread(os.path.join(TEMPLATES_PATH, "token_game_mode_2.png")),
+    "match_mode_3": imread(os.path.join(TEMPLATES_PATH, "token_match_mode_3.png")),
 }
 
 
@@ -113,10 +115,10 @@ def loop(
                     x = torch.zeros((1, 2, dataset.num_classes), dtype=torch.float32)
                     for k, v in group1.items():
                         if k in dataset.names:
-                            x[0, 0, dataset.names[k]] = float(v)
+                            x[0, 0, dataset.names[k]] = float(v)  # type: ignore
                     for k, v in group2.items():
                         if k in dataset.names:
-                            x[0, 1, dataset.names[k]] = float(v)
+                            x[0, 1, dataset.names[k]] = float(v)  # type: ignore
                     with torch.no_grad():
                         logits = model(x)
                         probs = torch.softmax(logits, dim=-1).numpy().flatten()
