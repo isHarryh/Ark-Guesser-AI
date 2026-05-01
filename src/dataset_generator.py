@@ -475,7 +475,7 @@ class DatasetGenerator:
         return rank_data
 
     def _mp_worker(self, task_queue: mp.Queue, result_queue: mp.Queue):
-        generator = DatasetGenerator(self._image_dir, self._include_ranking)
+        generator = DatasetGenerator(self._image_dir, include_ranking=self._include_ranking)
         while True:
             filename = task_queue.get()
             if filename is None:
