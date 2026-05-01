@@ -31,7 +31,7 @@ def screenshot(resize: tuple = (1920, 1080)) -> cv2.typing.MatLike:
     return screen
 
 
-def click(x: int, y: int, *, jitter: int = 2, reset_x: int = -100, reset_y: int = -100):
+def click(x: int, y: int, *, jitter: int = 4, reset_x: int = -100, reset_y: int = -100):
     rand_x = x + np.random.randint(-jitter, jitter + 1)
     rand_y = y + np.random.randint(-jitter, jitter + 1)
     pdi.moveTo(rand_x, rand_y)
@@ -147,18 +147,12 @@ def loop(
                 left_win = tm_win.x < tm_lose.x
                 print("\033[96m  Left won!\033[0m" if left_win else "\033[96m  Right won!\033[0m")
                 if save_screenshot:
-                    time_str = time.strftime("%Y%m%d_%H%M%S")
-                    file_path = os.path.join(
-                        save_screen_shot_dir,
-                        f"{'L' if left_win else 'R'}_{time_str}.png",
-                    )
+                    file_id = f"{'L' if left_win else 'R'}_{time.strftime('%Y%m%d_%H%M%S')}"
+                    file_path = os.path.join(save_screen_shot_dir, f"{file_id}.jpg")
                     print(f"  Saving screenshot to {file_path}")
                     save_jpeg(last_round_screen, file_path)
                     time.sleep(5)
-                    rank_file_path = os.path.join(
-                        save_screen_shot_dir,
-                        f"Rank_{'L' if left_win else 'R'}_{time_str}.png",
-                    )
+                    rank_file_path = os.path.join(save_screen_shot_dir, f"Rank_{file_id}.jpg")
                     save_jpeg(screenshot(), rank_file_path)
                     print(f"  Saving ranking screenshot to {rank_file_path}")
                 last_round_screen = None
