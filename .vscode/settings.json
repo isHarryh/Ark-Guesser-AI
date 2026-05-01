@@ -8,6 +8,7 @@
         "imshow",
         "imwrite"
     ],
+    "python.analysis.typeCheckingMode": "basic",
     "[json]": {
         "editor.formatOnSave": false
     },

@@ -8,14 +8,14 @@ import cv2
 import numpy as np
 
 
-def raise_for_ratio(image: cv2.Mat, target_ratio: float = 16 / 9, *, tolerance: float = 0.01):
+def raise_for_ratio(image: cv2.typing.MatLike, target_ratio: float = 16 / 9, *, tolerance: float = 0.01):
     """Raises an error if the image aspect ratio differs from the target ratio (with tolerance)."""
     actual_ratio = image.shape[1] / image.shape[0]
     if abs(actual_ratio - target_ratio) / target_ratio > tolerance:
         raise ValueError("Unexpected image ratio")
 
 
-def debug_show_image(image: cv2.Mat, title: str = "Image", *, scale: int = 1):
+def debug_show_image(image: cv2.typing.MatLike, title: str = "Image", *, scale: int = 1):
     """Shows the image in a window for debugging purposes (with optional scaling)."""
     cv2.imshow(
         title,
@@ -33,7 +33,7 @@ class AvatarImageFeature:
     DETECTER_INSTANCE = cv2.ORB.create(nfeatures=300, edgeThreshold=0, fastThreshold=0)
     MARCHER_INSTANCE = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
 
-    def __init__(self, image: cv2.Mat):
+    def __init__(self, image: cv2.typing.MatLike):
         self.kp, self.des = self.DETECTER_INSTANCE.detectAndCompute(image, None)
 
     def is_empty(self):
@@ -60,11 +60,11 @@ AVATARS: dict[str, AvatarImageFeature] = {
 
 
 class NumberImageHash:
-    def __init__(self, gray: cv2.Mat):
+    def __init__(self, gray: cv2.typing.MatLike):
         self.hash = self._average_hash(gray)
 
     @staticmethod
-    def _average_hash(gray: cv2.Mat, hash_size: int = 32):
+    def _average_hash(gray: cv2.typing.MatLike, hash_size: int = 32):
         resized = cv2.resize(gray, (hash_size, hash_size), interpolation=cv2.INTER_AREA)
         avg = np.mean(resized)
         bits = "".join(["1" if pixel > avg else "0" for pixel in resized.flatten()])
@@ -72,7 +72,7 @@ class NumberImageHash:
         return hex_hash
 
     @staticmethod
-    def _perceptual_hash(gray: cv2.Mat, hash_size: int = 8, high_freq_factor: int = 4):
+    def _perceptual_hash(gray: cv2.typing.MatLike, hash_size: int = 8, high_freq_factor: int = 4):
         resized = cv2.resize(gray, (hash_size * high_freq_factor, hash_size * high_freq_factor))
         dct = cv2.dct(np.float32(resized))
         dct_low_freq = dct[:hash_size, :hash_size]
@@ -118,14 +118,14 @@ class GameRoundRecognizer:
     GROUP_X_1 = 0.2464
     GROUP_X_2 = 0.5693
 
-    def __init__(self, screen: cv2.Mat):
+    def __init__(self, screen: cv2.typing.MatLike):
         raise_for_ratio(screen, target_ratio=self.WORKING_RATIO)
         self._height = round(self.WORKING_HEIGHT)
         self._width = round(self.WORKING_HEIGHT * self.WORKING_RATIO)
         self._screen = cv2.resize(screen, (self._width, self._height))
 
     @staticmethod
-    def _recognize_avatar(image: cv2.Mat, min_conf: float = 0.1):
+    def _recognize_avatar(image: cv2.typing.MatLike, min_conf: float = 0.1):
         if image is None or image.size == 0:
             return None
 
@@ -147,7 +147,7 @@ class GameRoundRecognizer:
         return None
 
     @staticmethod
-    def _recognize_number(image: cv2.Mat, min_similarity: float = 0.5, ignore_first_char: bool = True):
+    def _recognize_number(image: cv2.typing.MatLike, min_similarity: float = 0.5, ignore_first_char: bool = True):
         if image is None or image.size == 0:
             return None
 
@@ -315,14 +315,14 @@ class GameRankRecognizer:
     MAX_RANK = 8
     MAX_ROUND = 10
 
-    def __init__(self, screen: cv2.Mat):
+    def __init__(self, screen: cv2.typing.MatLike):
         raise_for_ratio(screen, target_ratio=self.WORKING_RATIO)
         self._height = round(self.WORKING_HEIGHT)
         self._width = round(self.WORKING_HEIGHT * self.WORKING_RATIO)
         self._screen = cv2.resize(screen, (self._width, self._height))
 
     @staticmethod
-    def _ocr(image: cv2.Mat):
+    def _ocr(image: cv2.typing.MatLike):
         import pytesseract
 
         text: str = pytesseract.image_to_string(
@@ -448,6 +448,7 @@ class DatasetGenerator:
 
     def _parse_common(self, image_path: str, winner: int):
         image = cv2.imread(image_path, cv2.IMREAD_COLOR)
+        assert image is not None, f"Failed to read image: {image_path}"
         recognizer = GameRoundRecognizer(image)
         member_data = recognizer.get_member_data()
 
@@ -468,6 +469,7 @@ class DatasetGenerator:
 
     def _parse_eval(self, image_path: str):
         image = cv2.imread(image_path, cv2.IMREAD_COLOR)
+        assert image is not None, f"Failed to read image: {image_path}"
         recognizer = GameRankRecognizer(image)
         rank_data = recognizer.get_rank_data()
         if rank_data["human_correct"] + rank_data["human_wrong"] + rank_data["human_neutral"] == 0:

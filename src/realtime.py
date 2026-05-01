@@ -23,7 +23,7 @@ TEMPLATES = {
 
 
 class TemplateMatch:
-    def __init__(self, image: cv2.Mat, template: cv2.Mat, method: int = cv2.TM_CCOEFF_NORMED):
+    def __init__(self, image: cv2.typing.MatLike, template: cv2.typing.MatLike, method: int = cv2.TM_CCOEFF_NORMED):
         res = cv2.matchTemplate(image, template, method)
         loc = cv2.minMaxLoc(res)
         self.conf = float(loc[1])
@@ -33,7 +33,7 @@ class TemplateMatch:
         self.y_center = int(self.y + template.shape[0] / 2)
 
 
-def screenshot(resize: tuple = (1920, 1080)) -> cv2.Mat:
+def screenshot(resize: tuple = (1920, 1080)) -> cv2.typing.MatLike:
     screen_pil = ImageGrab.grab()
     screen = cv2.cvtColor(np.array(screen_pil), cv2.COLOR_RGB2BGR)
     screen = cv2.resize(screen, resize, interpolation=cv2.INTER_AREA)

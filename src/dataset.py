@@ -124,7 +124,7 @@ class RawEvalArkGuesserDataset(RawArkGuesserDataset):
     def __init__(self, json_path: str):
         super().__init__(json_path)
 
-    def get_human_performance(self, idx: int) -> tuple[int]:
+    def get_human_performance(self, idx: int) -> tuple[int, int, int]:
         """
         :returns: correct, wrong, neutral
         """
@@ -153,7 +153,7 @@ class AugArkGuesserDataset(BaseArkGuesserDataset):
 
     def __getitem__(self, idx: int, advanced: bool = False):
         raw_idx = idx // self.SCALE
-        x_raw, y_raw = self._dataset[raw_idx]
+        x_raw, y_raw = self._dataset[raw_idx]  # type: ignore
         mod = idx % self.SCALE
 
         if not advanced:
