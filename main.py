@@ -52,10 +52,10 @@ def main():
         from src.realtime import main as realtime_main
 
         realtime_main(
-            bool(args.save_snapshot),
+            bool(args.snapshot_dir),
             args.auto_start,
             args.infer,
-            save_screen_shot_dir=args.save_snapshot or "",
+            save_screen_shot_dir=args.snapshot_dir or "",
             infer_dataset_path=args.infer_dataset_path or "",
             infer_model_path=args.infer_model_path or "",
         )
