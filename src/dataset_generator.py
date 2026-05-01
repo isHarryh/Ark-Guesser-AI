@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import time
 import queue
 import multiprocessing as mp
@@ -7,7 +8,7 @@ import multiprocessing as mp
 import cv2
 import numpy as np
 
-from src.utils import imread
+from src.utils import imread, TemplateMatch
 
 
 def raise_for_ratio(image: cv2.typing.MatLike, target_ratio: float = 16 / 9, *, tolerance: float = 0.01):
@@ -60,43 +61,9 @@ AVATARS: dict[str, AvatarImageFeature] = {
     if filename.endswith(".png")
 }
 
-
-class NumberImageHash:
-    def __init__(self, gray: cv2.typing.MatLike):
-        self.hash = self._average_hash(gray)
-
-    @staticmethod
-    def _average_hash(gray: cv2.typing.MatLike, hash_size: int = 32):
-        resized = cv2.resize(gray, (hash_size, hash_size), interpolation=cv2.INTER_AREA)
-        avg = np.mean(resized)  # type: ignore
-        bits = "".join(["1" if pixel > avg else "0" for pixel in resized.flatten()])
-        hex_hash = "{:0{}x}".format(int(bits, 2), len(bits) // 4)
-        return hex_hash
-
-    @staticmethod
-    def _perceptual_hash(gray: cv2.typing.MatLike, hash_size: int = 8, high_freq_factor: int = 4):
-        resized = cv2.resize(gray, (hash_size * high_freq_factor, hash_size * high_freq_factor))
-        dct = cv2.dct(np.float32(resized))  # type: ignore
-        dct_low_freq = dct[:hash_size, :hash_size]
-        dct_flatten = dct_low_freq.flatten()
-        diff = dct_low_freq > np.mean(dct_flatten[1:])
-        bits = "".join(["1" if v else "0" for v in diff.flatten()])
-        hex_hash = "{:0{}x}".format(int(bits, 2), len(bits) // 4)
-        return hex_hash
-
-    def get_hamming_distance(self, other: "NumberImageHash"):
-        return sum(c1 != c2 for c1, c2 in zip(self.hash, other.hash))
-
-    def get_similarity(self, other: "NumberImageHash"):
-        return 1 - self.get_hamming_distance(other) / max(len(self.hash), len(other.hash))
-
-
 NUMBERS_DIR = "assets/numbers"
 
-NUMBERS = {
-    i: NumberImageHash(imread(os.path.join(NUMBERS_DIR, f"number_{i}.png"), flags=cv2.IMREAD_GRAYSCALE))
-    for i in range(10)
-}
+NUMBERS = {i: imread(os.path.join(NUMBERS_DIR, f"number_{i}.png"), flags=cv2.IMREAD_GRAYSCALE) for i in range(10)}
 
 NUMBER_LUT = np.array(
     [0 if v < 192 else 255 if v >= 224 else (v - 192) * 8 for v in range(256)],
@@ -187,14 +154,14 @@ class GameRoundRecognizer:
         recognized_digits = []
         for start, end in char_bounds:
             char_img = gray[:, start:end]
-            char_hash = NumberImageHash(char_img)
-
             best_digit = None
             best_sim = 0.0
-            for digit, num_hash in NUMBERS.items():
-                sim = char_hash.get_similarity(num_hash)
-                if sim > best_sim:
-                    best_sim = sim
+            for digit, num_template in NUMBERS.items():
+                tmpl_h, tmpl_w = num_template.shape[:2]
+                resized = cv2.resize(char_img, (tmpl_w, tmpl_h), interpolation=cv2.INTER_AREA)
+                match = TemplateMatch(resized, num_template)
+                if match.conf > best_sim:
+                    best_sim = match.conf
                     best_digit = digit
 
             # debug_show_image(char_img, title=f"{best_digit}: {best_sim:.4f}", scale=32)
@@ -494,12 +461,8 @@ class DatasetGenerator:
             "data": [],
         }
 
-        def filterer(filename: str):
-            lower_name = filename.lower()
-            return lower_name.endswith(".png") and (lower_name.startswith("l_") or lower_name.startswith("r_"))
-
         filelist = os.listdir(self._image_dir)
-        filelist = list(filter(filterer, filelist))
+        filelist = filter(lambda x: re.match(r"^[lr]_.+\.(png|jpg|jpeg)$", x, re.IGNORECASE), filelist)
         filelist = sorted(filelist, key=lambda x: "".join(reversed(x)))  # Pseudo random order
 
         task_queue = mp.Queue()

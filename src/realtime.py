@@ -8,7 +8,7 @@ import numpy as np
 import pydirectinput as pdi
 from PIL import ImageGrab
 
-from src.utils import imread
+from src.utils import imread, TemplateMatch
 
 TEMPLATES_PATH = "assets/templates"
 
@@ -22,17 +22,6 @@ TEMPLATES = {
     "game_mode_2": imread(os.path.join(TEMPLATES_PATH, "token_game_mode_2.png")),
     "match_mode_3": imread(os.path.join(TEMPLATES_PATH, "token_match_mode_3.png")),
 }
-
-
-class TemplateMatch:
-    def __init__(self, image: cv2.typing.MatLike, template: cv2.typing.MatLike, method: int = cv2.TM_CCOEFF_NORMED):
-        res = cv2.matchTemplate(image, template, method)
-        loc = cv2.minMaxLoc(res)
-        self.conf = float(loc[1])
-        self.x = int(loc[3][0])
-        self.y = int(loc[3][1])
-        self.x_center = int(self.x + template.shape[1] / 2)
-        self.y_center = int(self.y + template.shape[0] / 2)
 
 
 def screenshot(resize: tuple = (1920, 1080)) -> cv2.typing.MatLike:
