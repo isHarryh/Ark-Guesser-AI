@@ -75,17 +75,17 @@ class GameRoundRecognizer:
     WORKING_HEIGHT = 1080
     WORKING_RATIO = 16 / 9
 
-    AVATAR_H = 0.1046
-    AVATAR_W = 0.0589
-    AVATAR_Y = 0.8426
-    AVATAR_GAP = 0.0625
+    AVATAR_H = 0.095  # Old value: 0.105
+    AVATAR_W = 0.053  # Old value: 0.059
+    AVATAR_Y = 0.858  # Old value: 0.843
+    AVATAR_GAP = 0.057  # Old value: 0.063
 
-    NUMBER_H = 0.0259
-    NUMBER_W = 0.0573
-    NUMBER_Y = 0.9287
+    NUMBER_H = 0.020  # Old value: 0.026
+    NUMBER_W = 0.047  # Old value: 0.057
+    NUMBER_Y = 0.936  # Old value: 0.929
 
-    GROUP_X_1 = 0.2464
-    GROUP_X_2 = 0.5693
+    GROUP_X_1 = 0.271  # Old value: 0.246
+    GROUP_X_2 = 0.562  # Old value: 0.569
 
     def __init__(self, screen: cv2.typing.MatLike):
         raise_for_ratio(screen, target_ratio=self.WORKING_RATIO)
@@ -271,15 +271,15 @@ class GameRankRecognizer:
     WORKING_HEIGHT = 1080
     WORKING_RATIO = 16 / 9
 
-    OCR_AREA_X = 0.5000
-    OCR_AREA_Y = 0.1444
-    OCR_AREA_W = 0.3177
-    OCR_AREA_H = 0.0722
+    OCR_AREA_X = 0.500
+    OCR_AREA_Y = 0.129  # Old value: 0.144
+    OCR_AREA_W = 0.294  # Old value: 0.318
+    OCR_AREA_H = 0.066  # Old value: 0.072
 
-    ROUND_OCR_AREA_X = 0.5385
-    ROUND_OCR_AREA_Y = 0.0333
-    ROUND_OCR_AREA_W = 0.2083
-    ROUND_OCR_AREA_H = 0.0426
+    ROUND_OCR_AREA_X = 0.535  # Old value: 0.539
+    ROUND_OCR_AREA_Y = 0.030  # Old value: 0.033
+    ROUND_OCR_AREA_W = 0.019  # Old value: 0.208
+    ROUND_OCR_AREA_H = 0.035  # Old value: 0.043
 
     MAX_RANK = 8
     MAX_ROUND = 10
