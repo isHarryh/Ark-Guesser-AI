@@ -1,4 +1,5 @@
 import json
+import math
 import os
 import re
 import time
@@ -32,34 +33,52 @@ def debug_show_image(image: cv2.typing.MatLike, title: str = "Image", *, scale: 
     cv2.destroyAllWindows()
 
 
-class AvatarImageFeature:
-    DETECTER_INSTANCE = cv2.ORB.create(nfeatures=300, edgeThreshold=0, fastThreshold=0)
-    MARCHER_INSTANCE = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+def compute_inscribed_rect(size: tuple[int, int]) -> tuple[int, int, int, int]:
+    width, height = size
+    side = int(round(min(width, height) / math.sqrt(2)))
+    left = (width - side) // 2
+    right = width - side - left
+    up = (height - side) // 2
+    down = height - side - up
+    return (up, right, down, left)
 
-    def __init__(self, image: cv2.typing.MatLike):
-        self.kp, self.des = self.DETECTER_INSTANCE.detectAndCompute(image, None)  # type: ignore
 
-    def is_empty(self):
-        return self.des is None or len(self.des) == 0
-
-    def get_matches(self, other: "AvatarImageFeature"):
-        return self.MARCHER_INSTANCE.match(self.des, other.des)
-
-    def get_matches_confidence(self, other: "AvatarImageFeature", max_distance: float = 50.0):
-        matches = self.get_matches(other)
-        if not matches:
-            return 0.0
-        good_matches = [m for m in matches if m.distance <= max_distance]
-        return len(good_matches) / len(matches) if matches else 0.0
+def crop_to_inscribed_rect(image: cv2.typing.MatLike) -> cv2.typing.MatLike:
+    up, right, down, left = AVATAR_INSCRIBED_RECT_CROP
+    h, w = image.shape[:2]
+    if up + down >= h or left + right >= w:
+        return image
+    return image[up : h - down, left : w - right]
 
 
 AVATARS_DIR = "assets/avatars"
+AVATAR_MARGIN_CROP = (9, 9, 9, 9)
+AVATAR_RESIZE = (102, 102)
+AVATAR_INSCRIBED_RECT_CROP = compute_inscribed_rect(AVATAR_RESIZE)
 
-AVATARS: dict[str, AvatarImageFeature] = {
-    os.path.splitext(filename)[0]: AvatarImageFeature(imread(os.path.join(AVATARS_DIR, filename)))
+AVATARS: dict[str, cv2.typing.MatLike] = {
+    os.path.splitext(filename)[0]: imread(
+        os.path.join(AVATARS_DIR, filename),
+        crop=AVATAR_MARGIN_CROP,
+        resize=AVATAR_RESIZE,
+    )
     for filename in os.listdir(AVATARS_DIR)
     if filename.endswith(".png")
 }
+"""
+To load the correct avatar images, we did the following preprocessing steps:
+1. Crop the avatar image with a fixed margin to remove the existing box-shadow.
+2. Resize the avatar image to the size we observed in the game screenshots.
+"""
+
+AVATARS_FOR_MARCHING: dict[str, cv2.typing.MatLike] = {
+    name: cv2.GaussianBlur(crop_to_inscribed_rect(img), (3, 3), 0.0) for name, img in AVATARS.items()
+}
+"""
+To make the loaded avatar images suitable for template matching, we did the following preprocessing steps:
+1. Crop the avatar image into an inscribed square to remove the irrelevant background.
+2. Apply gaussian blur to reduce noises.
+"""
 
 NUMBERS_DIR = "assets/numbers"
 
@@ -94,20 +113,20 @@ class GameRoundRecognizer:
         self._screen = cv2.resize(screen, (self._width, self._height))
 
     @staticmethod
-    def _recognize_avatar(image: cv2.typing.MatLike, min_conf: float = 0.1):
+    def _recognize_avatar(image: cv2.typing.MatLike, min_conf: float = 0.5):
         if image is None or image.size == 0:
             return None
 
-        feat_this = AvatarImageFeature(image)
-        if feat_this.is_empty():
-            return None
+        avatar_img = cv2.resize(image, AVATAR_RESIZE, interpolation=cv2.INTER_AREA)
+        avatar_img = crop_to_inscribed_rect(avatar_img)
 
         best_match = None
         best_conf = 0.0
-        for name, feat_template in AVATARS.items():
-            conf = feat_this.get_matches_confidence(feat_template)
-            if conf > best_conf:
-                best_conf = conf
+        for name, tmpl in AVATARS_FOR_MARCHING.items():
+            match = TemplateMatch(avatar_img, tmpl, cv2.TM_SQDIFF_NORMED)
+            match.conf = 1.0 - match.conf
+            if match.conf > best_conf:
+                best_conf = match.conf
                 best_match = name
 
         if best_conf >= min_conf:
