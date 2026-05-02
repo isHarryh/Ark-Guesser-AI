@@ -379,7 +379,7 @@ class GameRankRecognizer:
 
 
 class DatasetGenerator:
-    VERSION_NAME = "Honeydew"
+    VERSION_NAME = "IvyVine"
 
     def __init__(self, image_dir: str, *, include_ranking: bool = False, num_processes: int = 1):
         self._image_dir = image_dir

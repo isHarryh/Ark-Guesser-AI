@@ -9,11 +9,23 @@ Machine Learning Solution to Arknights Prediction Game
 
 在该游戏玩法中，玩家需要根据对战双方的阵营信息（出战人物及数量）来预测最终的获胜方。玩家选定了竞猜对象后，对战双方由计算机操纵进行自动对战，场上最终存活的一方即为获胜方。若玩家正确预测获胜方将获得奖励，否则可能受到惩罚。
 
-### 赛季兼容性说明
+### 赛季说明
 
-需要注意，由于不同的赛季可能会调整玩法的可出战人物、属性和地形要素，因此每个赛季都需要重新录入出战人物的头像模板图，并重新采集对局数据来训练模型。
+> [!NOTE]
+> 
+> 由于不同的赛季会调整可出战人物的类别、数值及机制，甚至会修改地形要素和 UI，因此每个赛季都需要对代码库进行重新适配。为作区分，**本仓库中不同分支对应了不同的赛季**。不同分支中的模型架构、数据处理方式等内容可能存在较大差异，请您留意。
 
-当前分支所包含的出战人物仅适用于 CN 服务器的第 2 赛季：“蜜果城”（Honeydew）。
+📍当前赛季分支：适用于 **CN 服务器第 3 赛季：绿藤城（IvyVine）**。
+
+📃所有赛季分支：
+
+|        赛季序号        |      赛季名称      |   开放日期    |   对应分支   |
+| :--------------------: | :----------------: | :-----------: | :----------: |
+| CN 服务器<br>第 2 赛季 | 蜜果城<br>Honeydew | 2025 年下半年 | [cn-season2] |
+| CN 服务器<br>第 3 赛季 | 绿藤城<br>IvyVine  | 2026 年上半年 | [cn-season3] |
+
+[cn-season2]: https://github.com/isHarryh/Ark-Guesser-AI/tree/cn-season2
+[cn-season3]: https://github.com/isHarryh/Ark-Guesser-AI/tree/cn-season3
 
 ### 技术细节
 
@@ -26,11 +38,11 @@ Machine Learning Solution to Arknights Prediction Game
 3. 交叉注意力层
 4. 池化及比较器层
 
-在不同的竞猜难度下，模型性能表现均超过人类组。详情参阅 Release 页面。
+在不同的竞猜难度下，模型性能表现均超过人类组。详情参阅 [Releases](https://github.com/isHarryh/Ark-Guesser-AI/releases) 页面。
 
 ## 使用方法 <sub>Usage</sub>
 
-下面介绍的是本项目的完整使用步骤。如果您不希望自己重新采集数据和训练模型，可以前往 Releases 页面来下载已经处理好的数据集和模型权重。
+下面介绍的是本项目的完整使用步骤。如果您不希望自己重新采集数据和训练模型，可以前往 [Releases](https://github.com/isHarryh/Ark-Guesser-AI/releases) 页面来下载已经处理好的数据集和模型权重。
 
 ### 1. 环境准备
 

@@ -1,6 +1,6 @@
 [project]
 name = "ark-guesser-ai"
-version = "0.2.0"
+version = "0.3.0"
 description = ""
 authors = [{ name = "Harry Huang", email = "harryhuang2652@qq.com" }]
 readme = "README.md"
