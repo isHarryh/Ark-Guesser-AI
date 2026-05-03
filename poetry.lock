@@ -426,6 +426,48 @@ url = "https://pypi.tuna.tsinghua.edu.cn/simple"
 reference = "PyPI-Tsinghua"
 
 [[package]]
+name = "maaagentbinary"
+version = "1.0.1"
+description = "AgentBinary for MaaFw"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "MaaAgentBinary-1.0.1-py3-none-any.whl", hash = "sha256:d97bcc9f35b52add199b287932511ecfcddcb83930c6b532d1c7010b432ec8bf"},
+]
+
+[package.source]
+type = "legacy"
+url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+reference = "PyPI-Tsinghua"
+
+[[package]]
+name = "maafw"
+version = "5.10.4"
+description = "An automation black-box testing framework based on image recognition"
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "maafw-5.10.4-py3-none-macosx_13_0_arm64.whl", hash = "sha256:1ae12e7b9554ce90654924bab05ad70349112bc85c96a9744b5cc88cb642a74e"},
+    {file = "maafw-5.10.4-py3-none-macosx_13_0_x86_64.whl", hash = "sha256:38d6807efe9746fb9d54fbeee4ecba12f3573da55cb23994fab356c3c78391f4"},
+    {file = "maafw-5.10.4-py3-none-manylinux2014_aarch64.whl", hash = "sha256:901b34859ace92a688b5707bc4996c9e2c136642550886f60f07a0976e1bb24a"},
+    {file = "maafw-5.10.4-py3-none-manylinux2014_x86_64.whl", hash = "sha256:8d6d61c7cf8a6316fe77e4ec7075eda8f7d53c4d1ce47b80662d6af774536775"},
+    {file = "maafw-5.10.4-py3-none-win_amd64.whl", hash = "sha256:2a5fe9be0bc50758867d2e84a2ddf1af5b7215e303aca61620cdd19e0c10cf26"},
+    {file = "maafw-5.10.4-py3-none-win_arm64.whl", hash = "sha256:ab518189a32afc62fb3dd2c46bad1ce18478b4239ca112f082a19a2d25820152"},
+]
+
+[package.dependencies]
+maaagentbinary = "*"
+numpy = "*"
+strenum = "*"
+
+[package.source]
+type = "legacy"
+url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+reference = "PyPI-Tsinghua"
+
+[[package]]
 name = "markupsafe"
 version = "3.0.2"
 description = "Safely add untrusted strings to HTML/XML markup."
@@ -1162,23 +1204,6 @@ test-arrow = ["pyarrow"]
 tests = ["check-manifest", "coverage (>=7.4.2)", "defusedxml", "markdown2", "olefile", "packaging", "pyroma", "pytest", "pytest-cov", "pytest-timeout", "pytest-xdist", "trove-classifiers (>=2024.10.12)"]
 typing = ["typing-extensions ; python_version < \"3.10\""]
 xmp = ["defusedxml"]
-
-[package.source]
-type = "legacy"
-url = "https://pypi.tuna.tsinghua.edu.cn/simple"
-reference = "PyPI-Tsinghua"
-
-[[package]]
-name = "pydirectinput"
-version = "1.0.4"
-description = "Python mouse and keyboard input automation for Windows using Direct Input."
-optional = false
-python-versions = ">=3.4"
-groups = ["main"]
-files = [
-    {file = "PyDirectInput-1.0.4-py3-none-any.whl", hash = "sha256:238bbe97f505f9c8728a47ea6a787750dbe834ec1fb42b98b3d703d827eda83e"},
-    {file = "PyDirectInput-1.0.4.tar.gz", hash = "sha256:bebe65102c69208688402f9f4cbd2ae7afc174fd2123e156e178b1304e7f80a2"},
-]
 
 [package.source]
 type = "legacy"
@@ -5681,6 +5706,28 @@ url = "https://pypi.tuna.tsinghua.edu.cn/simple"
 reference = "PyPI-Tsinghua"
 
 [[package]]
+name = "strenum"
+version = "0.4.15"
+description = "An Enum that inherits from str."
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "StrEnum-0.4.15-py3-none-any.whl", hash = "sha256:a30cda4af7cc6b5bf52c8055bc4bf4b2b6b14a93b574626da33df53cf7740659"},
+    {file = "StrEnum-0.4.15.tar.gz", hash = "sha256:878fb5ab705442070e4dd1929bb5e2249511c0bcf2b0eeacf3bcd80875c82eff"},
+]
+
+[package.extras]
+docs = ["myst-parser[linkify]", "sphinx", "sphinx-rtd-theme"]
+release = ["twine"]
+test = ["pylint", "pytest", "pytest-black", "pytest-cov", "pytest-pylint"]
+
+[package.source]
+type = "legacy"
+url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+reference = "PyPI-Tsinghua"
+
+[[package]]
 name = "sympy"
 version = "1.14.0"
 description = "Computer algebra system (CAS) in Python"
@@ -5808,4 +5855,4 @@ reference = "PyPI-Tsinghua"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12,<4"
-content-hash = "5166f1e0a7cfdfcdfb4f11f3af240b3272e1cb0ef1d2a9202e0cc5c9bbfbaf64"
+content-hash = "a0a466bfbf30dfb479a1c2e1a3784531d22bf514d7ad144132c1734c051e37da"
