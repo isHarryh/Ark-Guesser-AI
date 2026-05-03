@@ -8,8 +8,34 @@
         "imshow",
         "imwrite"
     ],
+    "files.associations": {
+        "**/interface*.json": "jsonc",
+        "**/resource*/pipeline/*.json": "jsonc",
+        "**/resource*/tasks/*.json": "jsonc"
+    },
+    "json.schemas": [
+        {
+            "fileMatch": [ "**/interface*.json" ],
+            "url": "https://github.com/MaaXYZ/MaaFramework/raw/refs/tags/v5.10.4/tools/interface.schema.json"
+        },
+        {
+            "fileMatch": [ "**/resource*/pipeline/*.json" ],
+            "url": "https://github.com/MaaXYZ/MaaFramework/raw/refs/tags/v5.10.4/tools/pipeline.schema.json"
+        },
+        {
+            "fileMatch": [ "**/resource*/tasks/*.json" ],
+            "url": "https://github.com/MaaXYZ/MaaFramework/raw/refs/tags/v5.10.4/tools/interface_import.schema.json"
+        }
+    ],
+    "json.schemaDownload.trustedDomains": {
+        "https://github.com/MaaXYZ/": true
+    },
     "python.analysis.typeCheckingMode": "basic",
     "[json]": {
         "editor.formatOnSave": false
     },
+    "[jsonc]": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "vscode.json-language-features"
+    }
 }
