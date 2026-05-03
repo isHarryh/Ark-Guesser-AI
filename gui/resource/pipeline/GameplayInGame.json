@@ -1,0 +1,177 @@
+{
+    "IsRoundReady1": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "Gameplay/RoundReady1.png"
+                ],
+                "roi": [
+                    644,
+                    501,
+                    665,
+                    160
+                ]
+            }
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "OnRoundReady"
+            }
+        },
+        "post_delay": 7000
+    },
+    "IsRoundReady2": {
+        "enabled": false,
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "Gameplay/RoundReady2.png"
+                ],
+                "roi": [
+                    644,
+                    501,
+                    665,
+                    160
+                ]
+            }
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "OnRoundReady"
+            }
+        },
+        "post_delay": 7000
+    },
+    "IsLeftWin": {
+        "recognition": {
+            "type": "Or",
+            "param": {
+                "any_of": [
+                    "__IsLeftWin"
+                    // "__IsRightLose"
+                ]
+            }
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "OnRoundEnd",
+                "custom_action_param": "left_win"
+            }
+        },
+        "post_wait_freezes": 1000
+    },
+    "IsRightWin": {
+        "recognition": {
+            "type": "Or",
+            "param": {
+                "any_of": [
+                    "__IsRightWin"
+                    // "__IsLeftLose"
+                ]
+            }
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "OnRoundEnd",
+                "custom_action_param": "right_win"
+            }
+        },
+        "post_wait_freezes": 1000
+    },
+    "IsRankingGenerated": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "Gameplay/RoundResultRanking.png"
+                ],
+                "roi": [
+                    253,
+                    81,
+                    156,
+                    780
+                ]
+            }
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "OnRankingGenerated",
+                "custom_action_param": {
+                    "screenshot_directory": null
+                }
+            }
+        },
+        "post_delay": 7000
+    },
+    "__IsLeftWin": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "Gameplay/RoundResultWin.png"
+                ],
+                "roi": [
+                    0,
+                    522,
+                    439,
+                    263
+                ]
+            }
+        }
+    },
+    "__IsLeftLose": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "Gameplay/RoundResultLose.png"
+                ],
+                "roi": [
+                    0,
+                    522,
+                    439,
+                    263
+                ]
+            }
+        }
+    },
+    "__IsRightWin": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "Gameplay/RoundResultWin.png"
+                ],
+                "roi": [
+                    1412,
+                    522,
+                    508,
+                    263
+                ]
+            }
+        }
+    },
+    "__IsRightLose": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "Gameplay/RoundResultLose.png"
+                ],
+                "roi": [
+                    1412,
+                    522,
+                    508,
+                    263
+                ]
+            }
+        }
+    }
+}

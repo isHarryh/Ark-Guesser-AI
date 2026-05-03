@@ -1,0 +1,46 @@
+{
+    "interface_version": 2,
+    "name": "Ark-Guesser-AI",
+    "label": "Ark Guesser AI",
+    "github": "https://github.com/isHarryh/Ark-Guesser-AI",
+    "version": "0.3.0",
+    "license": "BSD 3-Clause License",
+    "description": "《明日方舟》争锋频道竞猜玩法的机器学习解决方案\nMachine Learning Solution to Arknights Prediction Game",
+    "controller": [
+        {
+            "name": "Win",
+            "label": "Windows",
+            "type": "Win32",
+            "display_short_side": 1080,
+            "permission_required": true,
+            "win32": {
+                "class_regex": "UnityWndClass",
+                "window_regex": "明日方舟|Arknights",
+                "mouse": "PostMessageWithCursorPos",
+                "keyboard": "PostMessage",
+                "screencap": "Background"
+            }
+        }
+    ],
+    "resource": [
+        {
+            "name": "CN-Season-3",
+            "label": "IvyVine (CN Season 3)",
+            "path": [
+                "./resource",
+                "./resource_cn_season_3"
+            ]
+        }
+    ],
+    "agent": {
+        "child_exec": "python",
+        "child_args": [
+            "-u",
+            "./agent/server.py"
+        ]
+    },
+    "task": [ ],
+    "import": [
+        "./resource/tasks/GameplayLoop.json"
+    ]
+}

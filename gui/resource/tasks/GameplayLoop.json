@@ -1,0 +1,39 @@
+{
+    "task": [
+        {
+            "name": "GameplayCollectorLoop",
+            "label": "🔃自动数据采集(GameplayCollectorLoop)",
+            "description": "**自动游玩争锋频道的礼物对决匹配模式，并自动采集对局的图片数据。**\n**Automatically do gameplay and collect data.**",
+            "entry": "CollectorLoopEntry",
+            "option": [
+                "GamePlayCollectorLoopOutputOptions"
+            ]
+        }
+    ],
+    "option": {
+        "GamePlayCollectorLoopOutputOptions": {
+            "label": "📁输出选项(Output Options)",
+            "type": "input",
+            "inputs": [
+                {
+                    "name": "GamePlayCollectorLoopOutputOptions_ScreenshotDirectory",
+                    "label": "截图保存目录(Screenshot Directory)",
+                    "default": "./dataset/images"
+                }
+            ],
+            "pipeline_override": {
+                "IsRankingGenerated": {
+                    "action": {
+                        "type": "Custom",
+                        "param": {
+                            "custom_action": "OnRankingGenerated",
+                            "custom_action_param": {
+                                "screenshot_directory": "{GamePlayCollectorLoopOutputOptions_ScreenshotDirectory}"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

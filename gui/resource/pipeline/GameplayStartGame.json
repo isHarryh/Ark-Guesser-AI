@@ -1,0 +1,109 @@
+{
+    "StartGameEntry": {
+        "recognition": "Or",
+        "any_of": [
+            "AppEnter",
+            "AppLogin",
+            "CloseBonusDialog",
+            "ClosePopupDialog",
+            "EnterGameEntrance",
+            "EnterMatchMode3",
+            "EnterGameMode2"
+        ],
+        "next": [
+            "[JumpBack]AppEnter",
+            "[JumpBack]AppLogin",
+            "[JumpBack]CloseBonusDialog",
+            "[JumpBack]ClosePopupDialog",
+            "[JumpBack]EnterGameEntrance",
+            "EnterMatchMode3",
+            "EnterGameMode2"
+        ]
+    },
+    "EnterMatchMode3": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "Gameplay/ChooseMatchMode3.png"
+                ],
+                "roi": [
+                    1655,
+                    796,
+                    240,
+                    251
+                ]
+            }
+        },
+        "action": {
+            "type": "Click"
+        },
+        "post_wait_freezes": 1000,
+        "next": [
+            "EnterGameMode2"
+        ]
+    },
+    "EnterGameMode2": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "Gameplay/ChooseGameMode2.png"
+                ],
+                "roi": [
+                    736,
+                    840,
+                    303,
+                    176
+                ]
+            }
+        },
+        "action": {
+            "type": "Click"
+        },
+        "next": [
+            "ConfirmGameStart"
+        ]
+    },
+    "ConfirmGameStart": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "Gameplay/ConfirmGameStart1.png"
+                ],
+                "roi": [
+                    1693,
+                    655,
+                    192,
+                    306
+                ]
+            }
+        },
+        "action": {
+            "type": "Click"
+        },
+        "timeout": 60000,
+        "rate_limit": 2000,
+        "next": [
+            "WaitGameStartLoading"
+        ]
+    },
+    "WaitGameStartLoading": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "Gameplay/GameStartLoading.png"
+                ],
+                "roi": [
+                    677,
+                    231,
+                    565,
+                    584
+                ]
+            }
+        },
+        "next": [ ]
+    }
+}

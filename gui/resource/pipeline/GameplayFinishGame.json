@@ -1,0 +1,44 @@
+{
+    "FinishGameGoBack": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "Gameplay/GameFinishButtonBack.png"
+                ],
+                "roi": [
+                    1277,
+                    902,
+                    277,
+                    178
+                ]
+            }
+        },
+        "pre_wait_freezes": 500,
+        "action": {
+            "type": "Click"
+        },
+        "post_wait_freezes": 1000
+    },
+    "FinishGameRestart": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "Gameplay/GameFinishButtonContinue.png"
+                ],
+                "roi": [
+                    1535,
+                    910,
+                    344,
+                    170
+                ]
+            }
+        },
+        "pre_wait_freezes": 500,
+        "action": {
+            "type": "Click"
+        },
+        "post_wait_freezes": 1000
+    }
+}

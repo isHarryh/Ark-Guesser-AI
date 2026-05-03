@@ -1,0 +1,102 @@
+{
+    "AppEnter": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "Terminal/ApplicationEnterButton.png"
+                ],
+                "roi": [
+                    866,
+                    928,
+                    187,
+                    152
+                ]
+            }
+        },
+        "action": {
+            "type": "Click"
+        },
+        "post_wait_freezes": 1000
+    },
+    "AppLogin": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "Terminal/ApplicationLoginButton.png"
+                ],
+                "roi": [
+                    771,
+                    650,
+                    379,
+                    192
+                ]
+            }
+        },
+        "action": {
+            "type": "Click"
+        },
+        "post_wait_freezes": 1000
+    },
+    "CloseBonusDialog": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "Terminal/CloseBonusDialog.png"
+                ],
+                "roi": [
+                    1425,
+                    152,
+                    236,
+                    224
+                ]
+            }
+        },
+        "pre_wait_freezes": 500,
+        "action": {
+            "type": "Click"
+        }
+    },
+    "ClosePopupDialog": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "Terminal/ClosePopupDialog.png"
+                ],
+                "roi": [
+                    1019,
+                    27,
+                    878,
+                    521
+                ]
+            }
+        },
+        "pre_wait_freezes": 500,
+        "action": {
+            "type": "Click"
+        }
+    },
+    "EnterGameEntrance": {
+        "recognition": {
+            "type": "FeatureMatch",
+            "param": {
+                "template": [
+                    "Terminal/GameEntrance.png"
+                ],
+                "roi": [
+                    1288,
+                    99,
+                    632,
+                    461
+                ]
+            }
+        },
+        "action": {
+            "type": "Click"
+        },
+        "post_wait_freezes": 1000
+    }
+}

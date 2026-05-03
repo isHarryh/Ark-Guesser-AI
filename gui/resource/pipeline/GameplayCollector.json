@@ -1,0 +1,24 @@
+{
+    "CollectorLoopEntry": {
+        "next": [
+            "[JumpBack]__CollectorOnce",
+            "CollectorLoopComplete"
+        ]
+    },
+    "__CollectorOnce": {
+        "timeout": 180000,
+        "rate_limit": 250,
+        "next": [
+            "[JumpBack]StartGameEntry",
+            "[JumpBack]IsRoundReady1",
+            "[JumpBack]IsRoundReady2",
+            "[JumpBack]IsLeftWin",
+            "[JumpBack]IsRightWin",
+            "[JumpBack]IsRankingGenerated",
+            "[JumpBack]FinishGameGoBack"
+        ]
+    },
+    "CollectorLoopComplete": {
+        "next": [ ]
+    }
+}
