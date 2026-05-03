@@ -18,14 +18,6 @@ def main():
         "when enabled, the output dataset will contain human performance data for evaluation purposes",
     )
 
-    # Subcommand: realtime
-    realtime_parser = subparsers.add_parser("realtime", help="Run realtime operations")
-    realtime_parser.add_argument("-s", "--snapshot-dir", help="Save snapshots to the specified directory")
-    realtime_parser.add_argument("-i", "--infer", action="store_true", help="Enable inference")
-    realtime_parser.add_argument("-a", "--auto-start", action="store_true", help="Auto start game round")
-    realtime_parser.add_argument("--infer-dataset-path", help="Path to inference dataset")
-    realtime_parser.add_argument("--infer-model-path", help="Path to inference model")
-
     # Subcommand: train
     train_parser = subparsers.add_parser("train", help="Train the model")
     train_parser.add_argument("dataset_path", help="Path to the dataset JSON file")
@@ -52,18 +44,6 @@ def main():
             args.output_path,
             include_ranking=args.include_ranking,
             num_processes=args.num_processes,
-        )
-
-    elif args.command == "realtime":
-        from src.realtime import main as realtime_main
-
-        realtime_main(
-            bool(args.snapshot_dir),
-            args.auto_start,
-            args.infer,
-            save_screen_shot_dir=args.snapshot_dir or "",
-            infer_dataset_path=args.infer_dataset_path or "",
-            infer_model_path=args.infer_model_path or "",
         )
 
     elif args.command == "train":
