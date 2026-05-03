@@ -36,6 +36,12 @@ def main():
     eval_parser.add_argument("dataset_path", help="Path to the evaluation dataset JSON file")
     eval_parser.add_argument("model_path", help="Path to the trained model")
 
+    # Subcommand: infer
+    infer_parser = subparsers.add_parser("infer", help="Run inference on image files")
+    infer_parser.add_argument("dataset_path", help="Path to dataset JSON file")
+    infer_parser.add_argument("model_path", help="Path to trained model")
+    infer_parser.add_argument("image_path", help="Image file or directory")
+
     args = parser.parse_args()
 
     if args.command == "dataset_generate":
@@ -69,6 +75,11 @@ def main():
         from src.eval import main as eval_main
 
         eval_main(args.dataset_path, args.model_path)
+
+    elif args.command == "infer":
+        from src.infer import main as infer_main
+
+        infer_main(args.dataset_path, args.model_path, args.image_path)
 
     else:
         parser.print_help()
