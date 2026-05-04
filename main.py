@@ -23,6 +23,9 @@ def main():
     train_parser.add_argument("dataset_path", help="Path to the dataset JSON file")
     train_parser.add_argument("model_path", help="Path to save the trained model")
 
+    # Subcommand: gui
+    subparsers.add_parser("gui", help="Prepare and launch GUI")
+
     # Subcommand: eval
     eval_parser = subparsers.add_parser("eval", help="Evaluate the model")
     eval_parser.add_argument("dataset_path", help="Path to the evaluation dataset JSON file")
@@ -50,6 +53,12 @@ def main():
         from src.train import main as train_main
 
         train_main(args.dataset_path, args.model_path)
+
+    elif args.command == "gui":
+        from src.gui import prepare_deps, start_gui
+
+        if prepare_deps():
+            start_gui()
 
     elif args.command == "eval":
         from src.eval import main as eval_main
