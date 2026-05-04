@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from matplotlib import ticker, axes
 
 from src.dataset import RawArkGuesserDataset, AugArkGuesserDataset
-from src.model import ArkGuesserModelV0
+from src.model import ArkGuesserModelV1
 
 TrainingRecord = namedtuple("TrainingRecord", ["epoch", "train_loss", "train_acc", "valid_loss", "valid_acc"])
 
@@ -158,7 +158,7 @@ def main(dataset_path: str, model_path: str):
     print(f"Dataset loaded: {n_total} raw samples ({n_train} train, {n_valid} valid)")
 
     # Prepare training
-    model = ArkGuesserModelV0(dataset.num_classes)
+    model = ArkGuesserModelV1(dataset.num_classes)
     model.to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=1e-6)

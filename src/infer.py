@@ -7,7 +7,7 @@ import torch
 
 from src.dataset import RawArkGuesserDataset
 from src.dataset_generator import GameRoundRecognizer
-from src.model import ArkGuesserModelV0
+from src.model import ArkGuesserModelV1
 from src.utils import imread
 
 
@@ -19,7 +19,7 @@ class InferResult(NamedTuple):
 class InferService:
     def __init__(self, dataset_path: str, model_path: str):
         self._dataset = RawArkGuesserDataset(dataset_path)
-        self._model = ArkGuesserModelV0(num_classes=self._dataset.num_classes)
+        self._model = ArkGuesserModelV1(num_classes=self._dataset.num_classes)
         self._model.load_state_dict(torch.load(model_path, map_location="cpu"))
         self._model.eval()
 

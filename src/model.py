@@ -1,16 +1,15 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 
-class ArkGuesserModelV0(nn.Module):
+class ArkGuesserModelV1(nn.Module):
     """
     输入: x, shape (batch, 2, num_classes)
     输出: logits, shape (batch, 2)  # 未 softmax 的 logits
     架构:
       1. 编码器: 对每个集合的数量分布做编码 (共享MLP + 类别嵌入)
       2. 双向交叉注意力: 集合间交互
-      3. 池化: 聚合为集合向量 (可学习加权平均池化)
+      3. 池化: 聚合为集合向量 (注意力池化)
       4. 比较器: 输出胜者 logits
     """
 
@@ -51,6 +50,16 @@ class ArkGuesserModelV0(nn.Module):
             batch_first=True,
         )
 
+        # Learnable pooling query for PMA-style aggregation
+        self.pool_seed = nn.Parameter(torch.randn(1, 1, hidden_dim))
+        self.pool = nn.MultiheadAttention(
+            embed_dim=hidden_dim,
+            num_heads=attn_heads,
+            dropout=dropout,
+            add_zero_attn=True,
+            batch_first=True,
+        )
+
         # Comparator
         self.comparator = nn.Sequential(
             nn.Linear(hidden_dim, hidden_dim * 2),
@@ -84,6 +93,7 @@ class ArkGuesserModelV0(nn.Module):
         返回: logits (batch, 2)  # 未 softmax 的 logits
         """
         batch_size = x.size(0)
+        x = torch.log1p(x.clamp_min(0.0))
         # 类别嵌入 (batch, 2, num_classes, hidden_dim)
         class_indices = (
             torch.arange(self.num_classes, device=x.device)
@@ -102,9 +112,12 @@ class ArkGuesserModelV0(nn.Module):
         set1_attn, _ = self.cross_attn(query=set1, key=set2, value=set2)
         set2_attn, _ = self.cross_attn(query=set2, key=set1, value=set1)
         set1, set2 = set1_attn, set2_attn
-        # 池化
-        set1_pooled = set1.mean(dim=1)  # (batch, hidden_dim)
-        set2_pooled = set2.mean(dim=1)  # (batch, hidden_dim)
+        # 注意力池化
+        pool_query = self.pool_seed.expand(batch_size, -1, -1)
+        set1_pooled, _ = self.pool(query=pool_query, key=set1, value=set1)
+        set2_pooled, _ = self.pool(query=pool_query, key=set2, value=set2)
+        set1_pooled = set1_pooled.squeeze(1)
+        set2_pooled = set2_pooled.squeeze(1)
         # 送入比较器
         # combined = torch.cat([set1_pooled, set2_pooled], dim=-1)  # (batch, hidden_dim * 2)
         combined = set1_pooled - set2_pooled  # (batch, hidden_dim)

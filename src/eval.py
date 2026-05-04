@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from matplotlib import ticker
 
 from src.dataset import RawEvalArkGuesserDataset
-from src.model import ArkGuesserModelV0
+from src.model import ArkGuesserModelV1
 
 
 def regroup(stats: dict, k: int):
@@ -309,7 +309,7 @@ def main(dataset_path: str, model_path: str):
     print(f"Dataset loaded: {len(dataset)} samples")
 
     # Load model
-    model = ArkGuesserModelV0(dataset.num_classes)
+    model = ArkGuesserModelV1(dataset.num_classes)
     model.load_state_dict(torch.load(model_path, map_location=device))
     model.to(device)
     model.eval()
