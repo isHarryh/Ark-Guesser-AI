@@ -37,6 +37,13 @@ def main():
     infer_parser.add_argument("model_path", help="Path to trained model")
     infer_parser.add_argument("image_path", help="Image file or directory")
 
+    # Subcommand: dataset_visualize
+    viz_parser = subparsers.add_parser("dataset_visualize", help="Generate dataset HTML report")
+    viz_parser.add_argument("dataset_path", help="Path to dataset JSON file")
+    viz_parser.add_argument("--host", default="127.0.0.1", help="Host to serve the report")
+    viz_parser.add_argument("--port", type=int, default=8050, help="Port to serve the report")
+    viz_parser.add_argument("--debug", action="store_true", help="Enable Dash debug mode")
+
     args = parser.parse_args()
 
     if args.command == "dataset_generate":
@@ -69,6 +76,11 @@ def main():
         from src.infer import main as infer_main
 
         infer_main(args.dataset_path, args.model_path, args.image_path)
+
+    elif args.command == "dataset_visualize":
+        from src.dataset_visualizer import main as dataset_visualize_main
+
+        dataset_visualize_main(args.dataset_path, host=args.host, port=args.port, debug=args.debug)
 
     else:
         parser.print_help()
