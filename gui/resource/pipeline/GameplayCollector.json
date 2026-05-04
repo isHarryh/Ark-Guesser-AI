@@ -12,7 +12,7 @@
             "type": "Or",
             "param": {
                 "any_of": [
-                    "IsInGameEntrance"
+                    "StartGameFromGameEntrance"
                 ]
             }
         },

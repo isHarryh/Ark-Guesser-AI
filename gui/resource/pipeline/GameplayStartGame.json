@@ -1,28 +1,30 @@
 {
     "StartGameFromGameEntrance": {
+        "desc": "从玩法入口（或匹配页面）开始游戏，失败则尝试TerminalAnyEnter",
         "recognition": {
             "type": "Or",
             "param": {
                 "any_of": [
-                    "IsInGameEntrance"
+                    "__EnterMatchMode3",
+                    "__EnterGameMode2",
+                    "__WaitGameStartLoading"
                 ]
             }
         },
+        "timeout": 60000,
+        "rate_limit": 1000,
         "next": [
-            "EnterMatchMode3"
+            "[JumpBack]__EnterMatchMode3",
+            "[JumpBack]__EnterGameMode2",
+            "__WaitGameStartLoading"
+        ],
+        "on_error": [
+            "[JumpBack]TerminalAnyEnter",
+            "StartGameFromGameEntrance"
         ]
     },
-    "IsInGameEntrance": {
-        "recognition": {
-            "type": "Or",
-            "param": {
-                "any_of": [
-                    "EnterMatchMode3"
-                ]
-            }
-        }
-    },
-    "EnterMatchMode3": {
+    "__EnterMatchMode3": {
+        "desc": "在玩法入口点击匹配模式3（联机匹配模式）",
         "recognition": {
             "type": "TemplateMatch",
             "param": {
@@ -40,12 +42,10 @@
         "action": {
             "type": "Click"
         },
-        "post_wait_freezes": 1000,
-        "next": [
-            "EnterGameMode2"
-        ]
+        "post_wait_freezes": 1000
     },
-    "EnterGameMode2": {
+    "__EnterGameMode2": {
+        "desc": "在匹配页面点击玩法模式2（礼物竞猜模式）",
         "recognition": {
             "type": "TemplateMatch",
             "param": {
@@ -64,10 +64,11 @@
             "type": "Click"
         },
         "next": [
-            "ConfirmGameStart"
+            "__ConfirmGameStart"
         ]
     },
-    "ConfirmGameStart": {
+    "__ConfirmGameStart": {
+        "desc": "在匹配页面点击开始按钮",
         "recognition": {
             "type": "TemplateMatch",
             "param": {
@@ -84,14 +85,10 @@
         },
         "action": {
             "type": "Click"
-        },
-        "timeout": 60000,
-        "rate_limit": 2000,
-        "next": [
-            "WaitGameStartLoading"
-        ]
+        }
     },
-    "WaitGameStartLoading": {
+    "__WaitGameStartLoading": {
+        "desc": "等待加载画面出现",
         "recognition": {
             "type": "TemplateMatch",
             "param": {
@@ -106,6 +103,22 @@
                 ]
             }
         },
-        "next": [ ]
+        "timeout": 60000,
+        "rate_limit": 2000,
+        "next": [
+            "__WaitGameStopLoading"
+        ]
+    },
+    "__WaitGameStopLoading": {
+        "desc": "等待加载画面消失",
+        "recognition": {
+            "type": "Or",
+            "param": {
+                "any_of": [
+                    "__WaitGameStartLoading"
+                ]
+            }
+        },
+        "inverse": true
     }
 }
