@@ -20,7 +20,7 @@
                 "custom_action": "OnRoundReady"
             }
         },
-        "post_delay": 7000
+        "post_delay": 8000
     },
     "IsRoundReady2": {
         "enabled": false,
@@ -44,7 +44,7 @@
                 "custom_action": "OnRoundReady"
             }
         },
-        "post_delay": 7000
+        "post_delay": 8000
     },
     "IsLeftWin": {
         "recognition": {
@@ -108,7 +108,7 @@
                 }
             }
         },
-        "post_delay": 7000
+        "post_delay": 8000
     },
     "__IsLeftWin": {
         "recognition": {

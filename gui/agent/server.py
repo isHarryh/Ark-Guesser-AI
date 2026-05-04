@@ -143,6 +143,8 @@ class OnRankingGenerated(CustomAction):
         save_jpeg(_LAST_ROUND_IMAGE, round_output)
         print(f"[OnRankingGenerated] Saved round image to {round_output}")
 
+        time.sleep(1)  # Ensure the ranking UI is ready
+        context.tasker.controller.post_screencap().wait()
         raw_image: cv2.typing.MatLike = context.tasker.controller.cached_image
         rgb_image = cv2.cvtColor(raw_image, cv2.COLOR_BGR2RGB)
         rank_image = Image.fromarray(rgb_image)
