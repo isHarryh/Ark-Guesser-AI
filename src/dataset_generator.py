@@ -97,6 +97,18 @@ ROUNDS = {
     i: imread(os.path.join(ROUNDS_DIR, f"round_{i}.png"), flags=cv2.IMREAD_GRAYSCALE) for i in range(1, ROUNDS_MAX + 1)
 }
 
+SCORES_DIR = "assets/scores"
+
+SCORES = {
+    "increase": (imread(os.path.join(SCORES_DIR, "score_increase.png")),),  # Player score increased
+    "decrease": (
+        imread(os.path.join(SCORES_DIR, "score_decrease1.png")),  # Player score decreased but not zero
+        imread(os.path.join(SCORES_DIR, "score_decrease2.png")),  # Player score decreased to zero and failed
+    ),
+    "same": (imread(os.path.join(SCORES_DIR, "score_same.png")),),  # Player wait-and-see with no score change
+    "skip": (imread(os.path.join(SCORES_DIR, "score_skip.png")),),  # Player already failed
+}
+
 
 class GameRoundRecognizer:
     WORKING_HEIGHT = 1080
@@ -298,10 +310,10 @@ class GameRankRecognizer:
     WORKING_HEIGHT = 1080
     WORKING_RATIO = 16 / 9
 
-    OCR_AREA_X = 0.500
-    OCR_AREA_Y = 0.129  # Old value: 0.144
-    OCR_AREA_W = 0.294  # Old value: 0.318
-    OCR_AREA_H = 0.066  # Old value: 0.072
+    SCORE_AREA_X = 0.486
+    SCORE_AREA_Y = 0.129  # Old value: 0.144
+    SCORE_AREA_W = 0.036
+    SCORE_AREA_H = 0.066  # Old value: 0.072
 
     ROUND_AREA_X = 0.515
     ROUND_AREA_Y = 0.019
@@ -318,13 +330,19 @@ class GameRankRecognizer:
         self._screen = cv2.resize(screen, (self._width, self._height))
 
     @staticmethod
-    def _ocr(image: cv2.typing.MatLike):
-        import pytesseract
+    def _recognize_score_symbol(image: cv2.typing.MatLike):
+        if image is None or image.size == 0:
+            return None
 
-        text: str = pytesseract.image_to_string(
-            image, lang="eng", config="--psm 7 -c tessedit_char_whitelist=0123456789+-/"
-        )
-        return text.strip()
+        best_key = None
+        best_conf = 0.0
+        for key, templates in SCORES.items():
+            for template in templates:
+                match = TemplateMatch(image, template)
+                if match.conf > best_conf:
+                    best_conf = match.conf
+                    best_key = key
+        return best_key
 
     def _get_cropped_screen(self, x: float, y: float, w: float, h: float):
         x = round(self._width * x)
@@ -361,44 +379,37 @@ class GameRankRecognizer:
         result["game_round"] = best_round
 
         my_key = ""
-        my_hue = None
+        my_sat = None
         for r in range(1, self.MAX_RANK + 1):
-            ocr_img = self._get_cropped_screen(
-                self.OCR_AREA_X,
-                self.OCR_AREA_Y + (r - 1) * self.OCR_AREA_H,
-                self.OCR_AREA_W,
-                self.OCR_AREA_H,
+            score_img = self._get_cropped_screen(
+                self.SCORE_AREA_X,
+                self.SCORE_AREA_Y + (r - 1) * self.SCORE_AREA_H,
+                self.SCORE_AREA_W,
+                self.SCORE_AREA_H,
             )
-            ocr_img = cv2.convertScaleAbs(ocr_img, alpha=1.5, beta=-64)
-            left_ocr_img = ocr_img[:, : ocr_img.shape[1] // 2]
-            right_ocr_img = ocr_img[:, ocr_img.shape[1] // 2 :]
-            # debug_show_image(ocr_img, title=f"Rank {r} OCR", scale=4)
 
-            score_delta_text, score_total_text = self._ocr(left_ocr_img), self._ocr(right_ocr_img)
-            score_total = int(score_total_text) if score_total_text.isdigit() else -1
+            score_delta_key = self._recognize_score_symbol(score_img)
 
             key = ""
-            if score_total > 0:
-                if score_delta_text.startswith("+"):
-                    key = "human_correct"  # Player correct
-                elif score_delta_text.startswith("-"):
-                    key = "human_wrong"  # Player wrong
-                else:
-                    key = "human_neutral"  # Player wait-and-see
+            if score_delta_key == "increase":
+                key = "human_correct"  # Player correct
+            elif score_delta_key == "decrease":
+                key = "human_wrong"  # Player wrong
+            elif score_delta_key == "same":
+                key = "human_neutral"  # Player wait-and-see
             else:
-                if score_delta_text.startswith("-"):
-                    key = "human_wrong"  # Player all-in but wrong
-                else:
-                    pass  # Player has already failed
+                pass  # Player already failed or unrecognized
 
-            hue = cv2.cvtColor(ocr_img, cv2.COLOR_BGR2HSV)[:, :, 0].mean()
-            if my_hue is None or hue < my_hue:
-                # Lowest hue is my rank, other ranks are opponent players
+            # debug_show_image(score_img, title=f"Rank {r}: {score_delta_key}", scale=8)
+
+            saturation = cv2.cvtColor(score_img, cv2.COLOR_BGR2HSV)[:, :, 1].mean()
+            if my_sat is None or saturation > my_sat:
+                # Highest saturation is my rank, other ranks are opponent players
                 if my_key:
                     # Previously recorded is opponent player rank
                     result[my_key] += 1
                 # My rank should not be recorded in the result, so keep it
-                my_hue = hue
+                my_sat = saturation
                 my_key = key
             else:
                 # Surely opponent player rank
