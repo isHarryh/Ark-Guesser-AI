@@ -89,6 +89,14 @@ NUMBER_LUT = np.array(
     dtype=np.uint8,
 )
 
+ROUNDS_DIR = "assets/rounds"
+
+ROUNDS_MAX = 10
+
+ROUNDS = {
+    i: imread(os.path.join(ROUNDS_DIR, f"round_{i}.png"), flags=cv2.IMREAD_GRAYSCALE) for i in range(1, ROUNDS_MAX + 1)
+}
+
 
 class GameRoundRecognizer:
     WORKING_HEIGHT = 1080
@@ -295,10 +303,10 @@ class GameRankRecognizer:
     OCR_AREA_W = 0.294  # Old value: 0.318
     OCR_AREA_H = 0.066  # Old value: 0.072
 
-    ROUND_OCR_AREA_X = 0.535  # Old value: 0.539
-    ROUND_OCR_AREA_Y = 0.030  # Old value: 0.033
-    ROUND_OCR_AREA_W = 0.019  # Old value: 0.208
-    ROUND_OCR_AREA_H = 0.035  # Old value: 0.043
+    ROUND_AREA_X = 0.515
+    ROUND_AREA_Y = 0.019
+    ROUND_AREA_W = 0.091
+    ROUND_AREA_H = 0.051
 
     MAX_RANK = 8
     MAX_ROUND = 10
@@ -333,21 +341,24 @@ class GameRankRecognizer:
             "human_neutral": 0,
         }
 
-        round_ocr_img = self._get_cropped_screen(
-            self.ROUND_OCR_AREA_X,
-            self.ROUND_OCR_AREA_Y,
-            self.ROUND_OCR_AREA_W,
-            self.ROUND_OCR_AREA_H,
+        round_img = self._get_cropped_screen(
+            self.ROUND_AREA_X,
+            self.ROUND_AREA_Y,
+            self.ROUND_AREA_W,
+            self.ROUND_AREA_H,
         )
-        round_ocr_img = cv2.convertScaleAbs(round_ocr_img, alpha=1.5, beta=0)
-        round_text = self._ocr(round_ocr_img).replace("+", "").replace("-", "").split("/")[0]
-        # print(f"Detected round text: '{round_text}'")
-        if round_text.isdigit():
-            result["game_round"] = int(round_text)
-            if not (1 <= result["game_round"] <= self.MAX_ROUND):
-                raise ValueError("Unexpected OCR result, round number out of range")
-        else:
-            raise ValueError("Unexpected OCR result, round number not recognized")
+        round_img = cv2.cvtColor(round_img, cv2.COLOR_BGR2GRAY)
+        best_sim = 0.0
+        best_round = 0
+        for round_num, template in ROUNDS.items():
+            match = TemplateMatch(round_img, template)
+            if match.conf > best_sim:
+                best_sim = match.conf
+                best_round = round_num
+        if not (0 < best_round <= self.MAX_ROUND):
+            raise ValueError("Failed to recognize game round")
+
+        result["game_round"] = best_round
 
         my_key = ""
         my_hue = None
