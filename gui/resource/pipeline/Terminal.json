@@ -1,5 +1,36 @@
 {
+    "TerminalAnyEnter": {
+        "desc": "从未知状态尝试切换到终端页面",
+        "next": [
+            "IsInTerminal",
+            "[JumpBack]AppEnter",
+            "[JumpBack]AppLogin",
+            "[JumpBack]CloseBonusDialog",
+            "[JumpBack]CloseConfirmDialog",
+            "[JumpBack]CloseObtainDialog",
+            "[JumpBack]ClosePopupDialog",
+            "[JumpBack]Back"
+        ]
+    },
+    "IsInTerminal": {
+        "desc": "检查是否在终端页面（通过设置按钮识别）",
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "Terminal/SettingsButton.png"
+                ],
+                "roi": [
+                    0,
+                    0,
+                    143,
+                    132
+                ]
+            }
+        }
+    },
     "AppEnter": {
+        "desc": "进入游戏",
         "recognition": {
             "type": "TemplateMatch",
             "param": {
@@ -20,6 +51,7 @@
         "post_wait_freezes": 1000
     },
     "AppLogin": {
+        "desc": "登录游戏",
         "recognition": {
             "type": "TemplateMatch",
             "param": {
@@ -40,6 +72,7 @@
         "post_wait_freezes": 1000
     },
     "CloseBonusDialog": {
+        "desc": "关闭特殊月卡弹窗",
         "recognition": {
             "type": "TemplateMatch",
             "param": {
@@ -59,7 +92,50 @@
             "type": "Click"
         }
     },
+    "CloseConfirmDialog": {
+        "desc": "关闭一般确认对话框（例如“数据已更新，即将进行同步”弹窗）",
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "Terminal/CloseConfirmDialog.png"
+                ],
+                "roi": [
+                    832,
+                    620,
+                    263,
+                    197
+                ]
+            }
+        },
+        "pre_wait_freezes": 500,
+        "action": {
+            "type": "Click"
+        }
+    },
+    "CloseObtainDialog": {
+        "desc": "关闭一般获得物品界面（例如签到奖励）",
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "Terminal/CloseObtainDialog.png"
+                ],
+                "roi": [
+                    856,
+                    10,
+                    236,
+                    226
+                ]
+            }
+        },
+        "pre_wait_freezes": 500,
+        "action": {
+            "type": "Click"
+        }
+    },
     "ClosePopupDialog": {
+        "desc": "关闭一般弹窗（例如公告和签到界面）",
         "recognition": {
             "type": "TemplateMatch",
             "param": {
@@ -79,7 +155,29 @@
             "type": "Click"
         }
     },
+    "Back": {
+        "desc": "一般返回",
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "Terminal/BackButton1.png",
+                    "Terminal/BackButton2.png"
+                ],
+                "roi": [
+                    0,
+                    0,
+                    189,
+                    134
+                ]
+            }
+        },
+        "action": {
+            "type": "Click"
+        }
+    },
     "EnterGameEntrance": {
+        "desc": "进入玩法入口",
         "recognition": {
             "type": "FeatureMatch",
             "param": {

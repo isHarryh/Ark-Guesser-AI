@@ -4,7 +4,7 @@
             "name": "GameplayCollectorLoop",
             "label": "🔃自动数据采集(GameplayCollectorLoop)",
             "description": "**自动游玩争锋频道的礼物对决匹配模式，并自动采集对局的图片数据。**\n**Automatically do gameplay and collect data.**",
-            "entry": "CollectorLoopEntry",
+            "entry": "CollectorEntry",
             "option": [
                 "GamePlayCollectorLoopOutputOptions"
             ]

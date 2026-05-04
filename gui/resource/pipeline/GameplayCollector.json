@@ -1,24 +1,42 @@
 {
-    "CollectorLoopEntry": {
+    "CollectorEntry": {
         "next": [
-            "[JumpBack]__CollectorOnce",
-            "CollectorLoopComplete"
+            "__CollectorReady",
+            "[JumpBack]FinishGameGoBack",
+            "[JumpBack]EnterGameEntrance",
+            "[JumpBack]TerminalAnyEnter"
         ]
     },
-    "__CollectorOnce": {
+    "__CollectorReady": {
+        "recognition": {
+            "type": "Or",
+            "param": {
+                "any_of": [
+                    "IsInGameEntrance"
+                ]
+            }
+        },
+        "next": [
+            "[JumpBack]StartGameFromGameEntrance",
+            "[JumpBack]__CollectorLoop"
+        ],
+        "on_error": [
+            "CollectorEntry"
+        ]
+    },
+    "__CollectorLoop": {
         "timeout": 180000,
         "rate_limit": 250,
         "next": [
-            "[JumpBack]StartGameEntry",
             "[JumpBack]IsRoundReady1",
             "[JumpBack]IsRoundReady2",
             "[JumpBack]IsLeftWin",
             "[JumpBack]IsRightWin",
             "[JumpBack]IsRankingGenerated",
-            "[JumpBack]FinishGameGoBack"
+            "FinishGameGoBack"
+        ],
+        "on_error": [
+            "CollectorEntry"
         ]
-    },
-    "CollectorLoopComplete": {
-        "next": [ ]
     }
 }

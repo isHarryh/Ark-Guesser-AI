@@ -1,24 +1,26 @@
 {
-    "StartGameEntry": {
-        "recognition": "Or",
-        "any_of": [
-            "AppEnter",
-            "AppLogin",
-            "CloseBonusDialog",
-            "ClosePopupDialog",
-            "EnterGameEntrance",
-            "EnterMatchMode3",
-            "EnterGameMode2"
-        ],
+    "StartGameFromGameEntrance": {
+        "recognition": {
+            "type": "Or",
+            "param": {
+                "any_of": [
+                    "IsInGameEntrance"
+                ]
+            }
+        },
         "next": [
-            "[JumpBack]AppEnter",
-            "[JumpBack]AppLogin",
-            "[JumpBack]CloseBonusDialog",
-            "[JumpBack]ClosePopupDialog",
-            "[JumpBack]EnterGameEntrance",
-            "EnterMatchMode3",
-            "EnterGameMode2"
+            "EnterMatchMode3"
         ]
+    },
+    "IsInGameEntrance": {
+        "recognition": {
+            "type": "Or",
+            "param": {
+                "any_of": [
+                    "EnterMatchMode3"
+                ]
+            }
+        }
     },
     "EnterMatchMode3": {
         "recognition": {
