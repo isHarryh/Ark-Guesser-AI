@@ -52,7 +52,7 @@ V1 版本（当前分支采用的版本）在上一版本的基础上：
 
 在二择一竞猜中（不允许“观望”的情景下），模型的平均准确率能够达到 75% 以上。人类玩家的平均水平仅为 50% 左右。
 
-如果允许“观望”，并且规定模型的观望阈值等于人类玩家的观望阈值，那么在不同的竞猜难度下，模型的赌赢率能够达到人类玩家的 120~200%，模型的赌输率仅为人类玩家的 20~60%。
+如果允许“观望”，并且规定模型的观望阈值等于人类玩家的观望阈值，那么在不同的竞猜难度下，模型的赌赢率能够达到人类玩家的 120\~200%，模型的赌输率仅为人类玩家的 20\~60%。
 
 > [!TIP]
 > 
@@ -72,7 +72,9 @@ V1 版本（当前分支采用的版本）在上一版本的基础上：
 
 修改 `src/dataset_generator.py` 文件中的 `DatasetGenerator.VERSION_NAME` 变量为当前赛季的名称，以便区分不同赛季的数据集。
 
-### 3. 原始数据采集
+### 3. 数据采集与分析
+
+#### 3.1 截图采集
 
 启动自动化 GUI 工具来采集游戏截图：
 
@@ -84,6 +86,8 @@ python main.py gui
 >
 > 有关自动化采集的详细说明，请参阅 [开发：自动化数据采集](#自动化数据采集) 章节。
 
+#### 3.2 数据集生成
+
 从采集的图片中生成训练数据集：
 
 ```bash
@@ -92,26 +96,35 @@ python main.py dataset_generate "dataset/images" "dataset/dataset.json" -p 8
 
 从采集的图片中生成包含人类排名信息的评估数据集：
 
+```bash
+python main.py dataset_generate "dataset/images_eval" "dataset/dataset_eval.json" -p 8 --include-ranking
+```
+
 > [!TIP]
 >
 > 请勿使用和训练数据集相同的图片目录来生成评估数据集。
 
-```bash
-python main.py dataset_generate "dataset/images_eval" "dataset/dataset_eval.json" -p 8 --include-ranking
-```
+#### 3.3 数据可视化
 
 生成数据集可视化报告：
 
 ```bash
 python main.py dataset_visualize "dataset/dataset.json"
+```
+
+如果使用评估测试集进行可视化，报告中会包含人类玩家的预测准确率等信息：
+
+```python
 python main.py dataset_visualize "dataset/dataset_eval.json"
 ```
 
 > [!TIP]
 >
-> 上述命令会启动一个 [Dash](https://dash.plotly.com/) 网页服务来展示可视化信息。如果使用评估测试集进行可视化，报告中会包含人类玩家的预测准确率等信息。
+> 上述命令会启动一个 [Dash](https://dash.plotly.com/) 网页服务来展示可视化信息。
 
 ### 4. 模型训练、评估及应用
+
+#### 4.1 模型训练
 
 使用训练数据集来训练模型：
 
@@ -119,11 +132,15 @@ python main.py dataset_visualize "dataset/dataset_eval.json"
 python main.py train "dataset/dataset.json" "ckpt/ark_guesser_model.pt"
 ```
 
+#### 4.2 模型评估
+
 使用评估数据集来测试模型性能：
 
 ```bash
 python main.py eval "dataset/dataset_eval.json" "ckpt/ark_guesser_model.pt"
 ```
+
+#### 4.3 模型推理应用
 
 使用训练好的模型来对图片进行推理：
 
