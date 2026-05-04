@@ -9,7 +9,7 @@ import multiprocessing as mp
 import cv2
 import numpy as np
 
-from src.utils import imread, TemplateMatch
+from src.utils import BatchTemplateMatch, imread
 
 
 def raise_for_ratio(image: cv2.typing.MatLike, target_ratio: float = 16 / 9, *, tolerance: float = 0.01):
@@ -99,15 +99,13 @@ ROUNDS = {
 
 SCORES_DIR = "assets/scores"
 
-SCORES = {
-    "increase": (imread(os.path.join(SCORES_DIR, "score_increase.png")),),  # Player score increased
-    "decrease": (
-        imread(os.path.join(SCORES_DIR, "score_decrease1.png")),  # Player score decreased but not zero
-        imread(os.path.join(SCORES_DIR, "score_decrease2.png")),  # Player score decreased to zero and failed
-    ),
-    "same": (imread(os.path.join(SCORES_DIR, "score_same.png")),),  # Player wait-and-see with no score change
-    "skip": (imread(os.path.join(SCORES_DIR, "score_skip.png")),),  # Player already failed
-}
+SCORES = [
+    ("increase", imread(os.path.join(SCORES_DIR, "score_increase.png"))),  # Player score increased
+    ("decrease", imread(os.path.join(SCORES_DIR, "score_decrease1.png"))),  # Player score decreased but not zero
+    ("decrease", imread(os.path.join(SCORES_DIR, "score_decrease2.png"))),  # Player score decreased to zero and failed
+    ("same", imread(os.path.join(SCORES_DIR, "score_same.png"))),  # Player wait-and-see with no score change
+    ("skip", imread(os.path.join(SCORES_DIR, "score_skip.png"))),  # Player already failed
+]
 
 
 class GameRoundRecognizer:
@@ -140,18 +138,11 @@ class GameRoundRecognizer:
         avatar_img = cv2.resize(image, AVATAR_RESIZE, interpolation=cv2.INTER_AREA)
         avatar_img = crop_to_inscribed_rect(avatar_img)
 
-        best_match = None
-        best_conf = 0.0
-        for name, tmpl in AVATARS_FOR_MARCHING.items():
-            match = TemplateMatch(avatar_img, tmpl, cv2.TM_SQDIFF_NORMED)
-            match.conf = 1.0 - match.conf
-            if match.conf > best_conf:
-                best_conf = match.conf
-                best_match = name
-
-        if best_conf >= min_conf:
-            # print(f"Best match {best_match} with confidence {best_conf:.2f}")
-            return best_match
+        batch = BatchTemplateMatch(avatar_img, AVATARS_FOR_MARCHING, cv2.TM_SQDIFF_NORMED)
+        assert batch.min_match is not None and batch.min_match_key is not None
+        if 1.0 - batch.min_match.conf >= min_conf:
+            # print(f"Best match {batch.min_match.key} with confidence {best_conf:.2f}")
+            return str(batch.min_match_key)
         return None
 
     @staticmethod
@@ -193,19 +184,11 @@ class GameRoundRecognizer:
         recognized_digits = []
         for start, end in char_bounds:
             char_img = gray[:, start:end]
-            best_digit = None
-            best_sim = 0.0
-            for digit, num_template in NUMBERS.items():
-                tmpl_h, tmpl_w = num_template.shape[:2]
-                resized = cv2.resize(char_img, (tmpl_w, tmpl_h), interpolation=cv2.INTER_AREA)
-                match = TemplateMatch(resized, num_template)
-                if match.conf > best_sim:
-                    best_sim = match.conf
-                    best_digit = digit
-
-            # debug_show_image(char_img, title=f"{best_digit}: {best_sim:.4f}", scale=32)
-            if best_sim >= min_similarity:
-                recognized_digits.append(str(best_digit))
+            batch = BatchTemplateMatch(char_img, NUMBERS, size_fit=True)
+            assert batch.max_match is not None and batch.max_match_key is not None
+            # debug_show_image(char_img, title=f"{match.max_match.key}: {match.max_match.conf:.4f}", scale=32)
+            if batch.max_match.conf >= min_similarity:
+                recognized_digits.append(str(batch.max_match_key))
 
         if not recognized_digits:
             return None
@@ -329,21 +312,6 @@ class GameRankRecognizer:
         self._width = round(self.WORKING_HEIGHT * self.WORKING_RATIO)
         self._screen = cv2.resize(screen, (self._width, self._height))
 
-    @staticmethod
-    def _recognize_score_symbol(image: cv2.typing.MatLike):
-        if image is None or image.size == 0:
-            return None
-
-        best_key = None
-        best_conf = 0.0
-        for key, templates in SCORES.items():
-            for template in templates:
-                match = TemplateMatch(image, template)
-                if match.conf > best_conf:
-                    best_conf = match.conf
-                    best_key = key
-        return best_key
-
     def _get_cropped_screen(self, x: float, y: float, w: float, h: float):
         x = round(self._width * x)
         y = round(self._height * y)
@@ -366,13 +334,9 @@ class GameRankRecognizer:
             self.ROUND_AREA_H,
         )
         round_img = cv2.cvtColor(round_img, cv2.COLOR_BGR2GRAY)
-        best_sim = 0.0
-        best_round = 0
-        for round_num, template in ROUNDS.items():
-            match = TemplateMatch(round_img, template)
-            if match.conf > best_sim:
-                best_sim = match.conf
-                best_round = round_num
+        batch = BatchTemplateMatch(round_img, ROUNDS)
+        assert batch.max_match is not None and isinstance(batch.max_match_key, int)
+        best_round = batch.max_match_key
         if not (0 < best_round <= self.MAX_ROUND):
             raise ValueError("Failed to recognize game round")
 
@@ -388,7 +352,9 @@ class GameRankRecognizer:
                 self.SCORE_AREA_H,
             )
 
-            score_delta_key = self._recognize_score_symbol(score_img)
+            batch = BatchTemplateMatch(score_img, SCORES)
+            assert batch.max_match_key is not None
+            score_delta_key = batch.max_match_key
 
             key = ""
             if score_delta_key == "increase":
