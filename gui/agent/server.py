@@ -9,21 +9,28 @@ WORK_DIR = AGENT_DIR.parent  # <project>/gui/
 ROOT_DIR = AGENT_DIR.parent.parent  # <project>/
 
 
-def ensure_libraries():
-    """Ensure the agent can import libraries from the linked site-packages."""
+def ensure_import_paths():
+    """Ensures this Python file can import:
+
+    1. Libraries from the linked site-packages located at `<project>/gui/agent/site-packages/`
+    2. Peer Python files in the same directory `<project>/gui/agent/` via `from agent import foobar`
+    """
     linked_site = AGENT_DIR / "site-packages"
     if linked_site.exists() and str(linked_site) not in sys.path:
         sys.path.insert(0, str(linked_site))
+    if str(WORK_DIR) not in sys.path:
+        sys.path.insert(0, str(WORK_DIR))
 
 
-ensure_libraries()
+ensure_import_paths()
+
+from PIL import Image
 
 from maa.agent.agent_server import AgentServer
 from maa.context import Context, Tasker
 from maa.custom_action import CustomAction
 
-import cv2
-from PIL import Image
+from agent.utils import ContextToolkit
 
 MAX_ROUND_DURATION = 120
 MAX_RANKING_GENERATION_DURATION = 10
@@ -65,20 +72,18 @@ def _parse_screenshot_directory(param: object) -> Path | None:
 class OnRoundReady(CustomAction):
     def run(self, context: Context, argv: CustomAction.RunArg) -> bool:
         global _LAST_ROUND_IMAGE, _LAST_ROUND_READY_TIME, _LAST_ROUND_END_TIME, _LAST_ROUND_FILE_ID
-        raw_image: cv2.typing.MatLike = context.tasker.controller.cached_image
-        pil_image = cv2.cvtColor(raw_image, cv2.COLOR_BGR2RGB)
-        _LAST_ROUND_IMAGE = Image.fromarray(pil_image)
+        _LAST_ROUND_IMAGE = ContextToolkit.get_screenshot(context)
         _LAST_ROUND_READY_TIME = time.time()
         _LAST_ROUND_END_TIME = None
         _LAST_ROUND_FILE_ID = None
         print("[OnRoundReady] Received round image")
 
         click_positions = [(350, 1000), (1600, 1000), (950, 700)]
-        x, y = random.choice(click_positions)
-        x += random.randint(-4, -4)
-        y += random.randint(-4, -4)
-        context.tasker.controller.post_click(x, y).wait()
-        print(f"[OnRoundReady] Posted click action at {x}, {y}")
+        vote_options = ["left_win", "right_win", "wait_and_see"]
+        index = random.choice([0, 1, 2])
+        x, y = click_positions[index]
+        ContextToolkit.post_jittered_click(context, x, y, jitter=4)
+        print(f"[OnRoundReady] Chose vote option {vote_options[index]}")
         return True
 
 
@@ -144,10 +149,7 @@ class OnRankingGenerated(CustomAction):
         print(f"[OnRankingGenerated] Saved round image to {round_output}")
 
         time.sleep(1)  # Ensure the ranking UI is ready
-        context.tasker.controller.post_screencap().wait()
-        raw_image: cv2.typing.MatLike = context.tasker.controller.cached_image
-        rgb_image = cv2.cvtColor(raw_image, cv2.COLOR_BGR2RGB)
-        rank_image = Image.fromarray(rgb_image)
+        rank_image = ContextToolkit.get_screenshot(context, force_refresh=True)
         rank_output = screenshot_dir / f"Rank_{_LAST_ROUND_FILE_ID}.jpg"
         save_jpeg(rank_image, rank_output)
         print(f"[OnRankingGenerated] Saved ranking image to {rank_output}")
@@ -166,6 +168,9 @@ def main():
         sys.exit(1)
 
     socket_id = sys.argv[-1]
+
+    if not (WORK_DIR / "interface.json").exists():
+        print("Cannot find MaaFramework interface.json file, please check your working directory.")
 
     Tasker.set_log_dir(WORK_DIR / "debug")
     AgentServer.start_up(socket_id)
