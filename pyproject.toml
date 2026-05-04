@@ -6,12 +6,10 @@ authors = [{ name = "Harry Huang", email = "harryhuang2652@qq.com" }]
 readme = "README.md"
 requires-python = ">=3.12,<4"
 dependencies = [
-    "keyboard (~=0.13)",
     "maafw (~=5.10)",
     "matplotlib (~=3.10)",
     "opencv-python (~=4.10)",
     "pillow (~=11.3)",
-    "pytesseract (~=0.3)",
     "torch (~=2.7)",
     "dash (~=4.1.0)",
 ]
