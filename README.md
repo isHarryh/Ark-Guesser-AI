@@ -27,7 +27,7 @@ Machine Learning Solution to Arknights Prediction Game
 [cn-season2]: https://github.com/isHarryh/Ark-Guesser-AI/tree/cn-season2
 [cn-season3]: https://github.com/isHarryh/Ark-Guesser-AI/tree/cn-season3
 
-### 技术细节
+### 模型细节
 
 模型输入为出战人物的离散类以及各个出战人物的数量（通过对游戏截图进行简单 CV 处理来提取）。模型输出是二分类。
 
@@ -38,7 +38,25 @@ Machine Learning Solution to Arknights Prediction Game
 3. 交叉注意力层
 4. 池化及比较器层
 
-在不同的竞猜难度下，模型性能表现均超过人类组。详情参阅 [Releases](https://github.com/isHarryh/Ark-Guesser-AI/releases) 页面。
+<details>
+<summary>🏗️模型架构变更日志（展开）</summary>
+
+V1 版本（当前分支采用的版本）在上一版本的基础上：
+
+- 使用注意力池化层代替了平均池化层；
+- 使用 log1p 数量编码代替了线性数量编码。
+
+</details>
+
+### 性能表现
+
+在二择一竞猜中（不允许“观望”的情景下），模型的平均准确率能够达到 75% 以上。人类玩家的平均水平仅为 50% 左右。
+
+如果允许“观望”，并且规定模型的观望阈值等于人类玩家的观望阈值，那么在不同的竞猜难度下，模型的赌赢率能够达到人类玩家的 120~200%，模型的赌输率仅为人类玩家的 20~60%。
+
+> [!TIP]
+> 
+> 有关详细的测评数据和图表，请参阅 [Releases](https://github.com/isHarryh/Ark-Guesser-AI/releases) 页面。
 
 ## 使用方法 <sub>Usage</sub>
 
@@ -46,7 +64,7 @@ Machine Learning Solution to Arknights Prediction Game
 
 ### 1. 环境准备
 
-本项目使用 Python 3.12 和 Torch 2.7 进行开发。具体需要安装的依赖库请参阅 [pyproject.toml](pyproject.toml) 文件。
+本项目使用 Python 3.12 和 Torch 2.7 进行开发。具体需要安装的依赖库请参阅 [pyproject.toml](pyproject.toml) 文件，请务必确保您已安装了所有规定的依赖项。
 
 ### 2. 赛季信息录入
 
@@ -56,11 +74,15 @@ Machine Learning Solution to Arknights Prediction Game
 
 ### 3. 原始数据采集
 
-自动操作游戏来进行对局截图采集：
+启动自动化 GUI 工具来采集游戏截图：
 
 ```bash
-python main.py realtime -s "dataset/images" --auto-start
+python main.py gui
 ```
+
+> [!TIP]
+>
+> 有关自动化采集的详细说明，请参阅 [开发：自动化数据采集](#自动化数据采集) 章节。
 
 从采集的图片中生成训练数据集：
 
@@ -68,11 +90,26 @@ python main.py realtime -s "dataset/images" --auto-start
 python main.py dataset_generate "dataset/images" "dataset/dataset.json" -p 8
 ```
 
-从采集的图片中生成包含人类排名信息的评估数据集（请勿使用和训练数据集相同的图片目录）：
+从采集的图片中生成包含人类排名信息的评估数据集：
+
+> [!TIP]
+>
+> 请勿使用和训练数据集相同的图片目录来生成评估数据集。
 
 ```bash
 python main.py dataset_generate "dataset/images_eval" "dataset/dataset_eval.json" -p 8 --include-ranking
 ```
+
+生成数据集可视化报告：
+
+```bash
+python main.py dataset_visualize "dataset/dataset.json"
+python main.py dataset_visualize "dataset/dataset_eval.json"
+```
+
+> [!TIP]
+>
+> 上述命令会启动一个 [Dash](https://dash.plotly.com/) 网页服务来展示可视化信息。如果使用评估测试集进行可视化，报告中会包含人类玩家的预测准确率等信息。
 
 ### 4. 模型训练、评估及应用
 
@@ -88,11 +125,41 @@ python main.py train "dataset/dataset.json" "ckpt/ark_guesser_model.pt"
 python main.py eval "dataset/dataset_eval.json" "ckpt/ark_guesser_model.pt"
 ```
 
-使用训练好的模型，在游戏中进行实时预测：
+使用训练好的模型来对图片进行推理：
 
 ```bash
-python main.py realtime -s "dataset/images_s3" -i --infer-dataset-path "dataset/dataset.json" --infer-model-path "ckpt/ark_guesser_model.pt"
+python main.py infer "dataset/dataset.json" "ckpt/ark_guesser_model.pt" "path/to/screenshot.png"
 ```
+
+## 开发 <sub>Development</sub>
+
+下面介绍的是本项目的具体的开发和实现细节。
+
+### 开发环境
+
+本项目积极采用 Poetry 作为 Python 包管理工具，其依赖项全部定义在 [pyproject.toml](pyproject.toml) 中。当然，您可以自由切换其他您熟悉的工具（例如 conda、uv、venv）来进行虚拟环境的管理。
+
+### 自动化数据采集
+
+为了自动操作游戏来采集游戏截图，我们使用了 MaaFramework + MXU 作为自动化方案。[MaaFramework](https://maafw.com/) 是一个基于图像识别的自动化框架，而 [MXU](https://github.com/MistEO/MXU) 是服务于 MaaFW 的一个前端 GUI 交互软件。
+
+当您运行下述命令：
+
+```bash
+python main.py gui
+```
+
+这会自动下载 MaaFW 依赖库和 MXU 程序文件到 `gui` 目录中，随后启动 MXU 程序。
+
+您只需启动《明日方舟》游戏窗口，打开玩法界面，然后按照 MXU 程序中的提示，添加采集任务即可完成游戏截图的采集。
+
+### 数据集结构
+
+数据集是单个 JSON 文件，包含以下结构：
+
+- 顶层 JSON：`version`（赛季名）、`names`（角色字符串名称到整数索引的映射）、`data`（对局样本列表）。
+- 每条对局样本：`groups` 为长度 2 的列表（左右阵营），元素为 `{"角色索引": 数量}`；`winner` 为 0/1（左侧/右侧获胜），从对局准备截图中识别。
+- 评估集会包含额外字段：`game_round`、`human_correct`、`human_wrong`、`human_neutral` 均为整数，从排行榜截图中识别。
 
 ## 许可证 <sub>Licensing</sub>
 
