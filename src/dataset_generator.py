@@ -366,8 +366,6 @@ class GameRankRecognizer:
             else:
                 pass  # Player already failed or unrecognized
 
-            # debug_show_image(score_img, title=f"Rank {r}: {score_delta_key}", scale=8)
-
             saturation = cv2.cvtColor(score_img, cv2.COLOR_BGR2HSV)[:, :, 1].mean()
             if my_sat is None or saturation > my_sat:
                 # Highest saturation is my rank, other ranks are opponent players
@@ -382,6 +380,7 @@ class GameRankRecognizer:
                 if key:
                     result[key] += 1
 
+        # debug_show_image(self._screen, title=f"{result}")
         return result
 
 
@@ -472,10 +471,11 @@ class DatasetGenerator:
         filelist = filter(lambda x: re.match(r"^[lr]_.+\.(png|jpg|jpeg)$", x, re.IGNORECASE), filelist)
         filelist = sorted(filelist, key=lambda x: "".join(reversed(x)))  # Pseudo random order
 
-        task_queue = mp.Queue()
-        result_queue = mp.Queue()
+        task_queue: mp.Queue[str | None] = mp.Queue()
+        result_queue: mp.Queue[tuple[str, dict, Exception | None]] = mp.Queue()
         process_list: list[mp.Process] = []
         parsed_entries: dict[str, dict] = {}
+        failed_files: list[str] = []
 
         for _ in range(self._num_processes):
             p = mp.Process(target=self._mp_worker, args=(task_queue, result_queue))
@@ -498,6 +498,7 @@ class DatasetGenerator:
                         parsed_entries[filename] = entry
                     else:
                         print(f"Failed to parse {filename}: {err}")
+                        failed_files.append(filename)
                     break
                 except queue.Empty:
                     continue
@@ -514,6 +515,9 @@ class DatasetGenerator:
                 p.join()
 
         dataset["data"] = [parsed_entries[name] for name in filelist if name in parsed_entries]
+
+        print(f"{len(failed_files)} failed files:")
+        print("\n".join(failed_files))
 
         return dataset
 
