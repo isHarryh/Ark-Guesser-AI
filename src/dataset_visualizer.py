@@ -5,6 +5,7 @@ import urllib.parse
 from pathlib import Path
 from typing import Any
 from html import escape as html_escape
+from dataclasses import dataclass, field
 
 import plotly.graph_objects as go
 from dash import Dash, dcc, html, dash_table
@@ -65,233 +66,312 @@ def _format_number(value: float) -> float:
 def _avatar_markdown(name: str) -> str:
     if not name:
         return ""
-    path = f"/assets/avatars/{urllib.parse.quote(name)}.png"
+    path = f"/assets/avatars_resized/{urllib.parse.quote(name)}.png"
     return f'<img src="{path}" height="64" alt="{html_escape(name)}" />'
 
 
-def _build_report(dataset_path: str) -> tuple[str, list[tuple[str, str]], list[go.Figure], list[dict[str, str]]]:
-    version, names, entries = _load_dataset(dataset_path)
+@dataclass
+class ClassStats:
+    total_qty: int = 0
+    appearances: int = 0
+    wins: int = 0
+    rounds: list[int] = field(default_factory=list)
 
-    total_qty_matches: list[int] = []
-    distinct_class_matches: list[int] = []
 
-    class_stats: dict[int, dict[str, Any]] = {}
+@dataclass
+class ReportData:
+    version: str
+    names: dict[int, str]
+    entries: list[dict[str, Any]]
+    total_qty_matches: list[int] = field(default_factory=list)
+    win_quantities: list[int] = field(default_factory=list)
+    lose_quantities: list[int] = field(default_factory=list)
+    class_stats: dict[int, ClassStats] = field(default_factory=dict)
+    rounds: list[int] = field(default_factory=list)
+    human_correct: list[int] = field(default_factory=list)
+    human_wrong: list[int] = field(default_factory=list)
+    human_neutral: list[int] = field(default_factory=list)
 
-    rounds: list[int] = []
-    human_correct: list[int] = []
-    human_wrong: list[int] = []
-    human_neutral: list[int] = []
+    @property
+    def sample_count(self) -> int:
+        return len(self.entries)
 
-    for entry in entries:
-        if not isinstance(entry, dict):
-            continue
-        groups = entry.get("groups", [])
-        if not (isinstance(groups, list) and len(groups) == 2):
-            continue
+    @property
+    def has_eval(self) -> bool:
+        return bool(self.rounds)
 
-        match_sum = 0
-        match_classes: set[int] = set()
-        winner = entry.get("winner")
-        game_round = entry.get("game_round")
-        has_round = isinstance(game_round, int)
 
-        for side in range(2):
-            group = groups[side]
-            if not isinstance(group, dict):
+class ReportBuilder:
+    def __init__(self, dataset_path: str) -> None:
+        version, names, entries = _load_dataset(dataset_path)
+        self._dataset_path = dataset_path
+        self._data = ReportData(version=version, names=names, entries=entries)
+
+    @property
+    def data(self) -> ReportData:
+        return self._data
+
+    def collect(self) -> None:
+        for entry in self._data.entries:
+            if not isinstance(entry, dict):
                 continue
-            for key, value in group.items():
+            groups = entry.get("groups", [])
+            if not (isinstance(groups, list) and len(groups) == 2):
+                continue
+
+            match_sum = 0
+            match_classes: set[int] = set()
+            side_sums = [0, 0]
+            winner = entry.get("winner")
+            game_round = entry.get("game_round")
+            has_round = isinstance(game_round, int)
+
+            for side in range(2):
+                group = groups[side]
+                if not isinstance(group, dict):
+                    continue
+                for key, value in group.items():
+                    try:
+                        idx = int(key)
+                        qty = int(value)
+                    except (TypeError, ValueError):
+                        continue
+                    if qty <= 0:
+                        continue
+
+                    stats = self._data.class_stats.setdefault(idx, ClassStats())
+                    stats.total_qty += qty
+                    stats.appearances += 1
+                    if isinstance(winner, int) and winner == side:
+                        stats.wins += 1
+
+                    side_sums[side] += qty
+                    match_sum += qty
+                    match_classes.add(idx)
+
+            if match_classes:
+                self._data.total_qty_matches.append(match_sum)
+                if isinstance(winner, int) and winner in (0, 1) and len(self._data.win_quantities) < 2500:
+                    self._data.win_quantities.append(side_sums[winner])
+                    self._data.lose_quantities.append(side_sums[1 - winner])
+
+            if has_round:
+                for idx in match_classes:
+                    self._data.class_stats[idx].rounds.append(game_round)
+
+            if all(k in entry for k in ("game_round", "human_correct", "human_wrong", "human_neutral")):
                 try:
-                    idx = int(key)
-                    qty = int(value)
+                    self._data.rounds.append(int(entry["game_round"]))
+                    self._data.human_correct.append(int(entry["human_correct"]))
+                    self._data.human_wrong.append(int(entry["human_wrong"]))
+                    self._data.human_neutral.append(int(entry["human_neutral"]))
                 except (TypeError, ValueError):
-                    continue
-                if qty <= 0:
-                    continue
+                    pass
 
-                stats = class_stats.setdefault(
-                    idx,
-                    {
-                        "total_qty": 0,
-                        "appearances": 0,
-                        "wins": 0,
-                        "rounds": [],
-                    },
-                )
-
-                stats["total_qty"] += qty
-                stats["appearances"] += 1
-                if isinstance(winner, int) and winner == side:
-                    stats["wins"] += 1
-
-                match_sum += qty
-                match_classes.add(idx)
-
-        if match_classes:
-            total_qty_matches.append(match_sum)
-            distinct_class_matches.append(len(match_classes))
-
-        if has_round:
-            for idx in match_classes:
-                class_stats[idx]["rounds"].append(game_round)
-
-        if all(k in entry for k in ("game_round", "human_correct", "human_wrong", "human_neutral")):
-            try:
-                rounds.append(int(entry["game_round"]))
-                human_correct.append(int(entry["human_correct"]))
-                human_wrong.append(int(entry["human_wrong"]))
-                human_neutral.append(int(entry["human_neutral"]))
-            except (TypeError, ValueError):
-                pass
-
-    sample_count = len(entries)
-    has_eval = bool(rounds)
-    num_classes = len(class_stats)
-    title = "Ark Guesser Dataset Report"
-
-    summary = [
-        ("Dataset Name", os.path.basename(dataset_path)),
-        ("Dataset Version", version or "(unknown)"),
-        ("Samples", str(sample_count)),
-        ("Classes", str(num_classes)),
-        ("Has Eval Fields", "Yes" if has_eval else "No"),
-    ]
-
-    figs: list[go.Figure] = []
-
-    if total_qty_matches:
-        qty_fig = go.Figure(data=[go.Histogram(x=total_qty_matches, marker_color="#1f77b4", opacity=0.85)])
-        qty_fig.update_layout(title="Total Unit Quantity per Round", xaxis_title="Unit Quantity", yaxis_title="Samples")
-        figs.append(qty_fig)
-
-    if distinct_class_matches:
-        class_fig = go.Figure(data=[go.Histogram(x=distinct_class_matches, marker_color="#ff7f0e", opacity=0.85)])
-        class_fig.update_layout(title="Distinct Classes per Round", xaxis_title="Classes Count", yaxis_title="Samples")
-        figs.append(class_fig)
-
-    if has_eval:
-        per_round: dict[int, dict[str, int]] = {}
-        for r, c, w, n in zip(rounds, human_correct, human_wrong, human_neutral):
-            bucket = per_round.setdefault(r, {"correct": 0, "wrong": 0, "neutral": 0})
-            bucket["correct"] += c
-            bucket["wrong"] += w
-            bucket["neutral"] += n
-
-        total_correct = sum(human_correct)
-        total_wrong = sum(human_wrong)
-        total_neutral = sum(human_neutral)
-        total_humans = total_correct + total_wrong + total_neutral
-        if total_humans <= 0:
-            total_correct = total_wrong = total_neutral = 0
-            total_humans = 1
-        overall_rates = [
-            total_correct / total_humans,
-            total_neutral / total_humans,
-            total_wrong / total_humans,
+    def build_summary(self) -> list[tuple[str, str]]:
+        return [
+            ("Dataset Name", os.path.basename(self._dataset_path)),
+            ("Dataset Version", self._data.version or "(unknown)"),
+            ("Samples", str(self._data.sample_count)),
+            ("Classes", str(len(self._data.class_stats))),
+            ("Has Eval Fields", "Yes" if self._data.has_eval else "No"),
         ]
 
-        overall_fig = go.Figure(
-            data=[
-                go.Bar(
-                    name="Correct",
-                    y=["Overall"],
-                    x=[overall_rates[0]],
-                    orientation="h",
-                    marker_color="#2ca02c",
-                ),
-                go.Bar(
-                    name="Neutral",
-                    y=["Overall"],
-                    x=[overall_rates[1]],
-                    orientation="h",
-                    marker_color="#7f7f7f",
-                ),
-                go.Bar(
-                    name="Wrong",
-                    y=["Overall"],
-                    x=[overall_rates[2]],
-                    orientation="h",
-                    marker_color="#d62728",
-                ),
-            ]
-        )
-        overall_fig.update_layout(
-            title="Overall Human Outcomes",
-            barmode="stack",
-            xaxis_tickformat=".0%",
-            xaxis_title="Rate",
-            yaxis_title="",
-            legend_orientation="h",
-            legend_yanchor="bottom",
-            legend_y=1.01,
-            legend_xanchor="left",
-            legend_x=0,
-        )
-        figs.append(overall_fig)
+    def build_figures(self) -> list[go.Figure]:
+        figs: list[go.Figure] = []
 
-        round_keys = sorted(per_round.keys())
-        wrong_rate = []
-        neutral_rate = []
-        correct_rate = []
-        for r in round_keys:
-            bucket = per_round[r]
-            total = bucket["correct"] + bucket["wrong"] + bucket["neutral"]
-            if total <= 0:
-                wrong_rate.append(0)
-                neutral_rate.append(0)
-                correct_rate.append(0)
+        if self._data.total_qty_matches:
+            qty_fig = go.Figure(
+                data=[go.Histogram(x=self._data.total_qty_matches, marker_color="#1f77b4", opacity=0.85)]
+            )
+            qty_fig.update_layout(
+                title="Total Unit Quantity per Match", xaxis_title="Unit Quantity", yaxis_title="Samples"
+            )
+            figs.append(qty_fig)
+
+        if self._data.win_quantities and self._data.lose_quantities:
+            scatter_fig = go.Figure(
+                data=[
+                    go.Scatter(
+                        x=self._data.lose_quantities,
+                        y=self._data.win_quantities,
+                        mode="markers",
+                        marker=dict(size=6, color="#2ca02c", opacity=0.6),
+                        name="Match",
+                    )
+                ]
+            )
+            if len(self._data.win_quantities) >= 2:
+                x_mean = sum(self._data.lose_quantities) / len(self._data.lose_quantities)
+                y_mean = sum(self._data.win_quantities) / len(self._data.win_quantities)
+                var_x = sum((x - x_mean) ** 2 for x in self._data.lose_quantities)
+                if var_x > 0:
+                    cov_xy = sum(
+                        (x - x_mean) * (y - y_mean)
+                        for x, y in zip(self._data.lose_quantities, self._data.win_quantities)
+                    )
+                    slope = cov_xy / var_x
+                    intercept = y_mean - slope * x_mean
+                    x_min = min(self._data.lose_quantities)
+                    x_max = max(self._data.lose_quantities)
+                    scatter_fig.add_trace(
+                        go.Scatter(
+                            x=[x_min, x_max],
+                            y=[slope * x_min + intercept, slope * x_max + intercept],
+                            mode="lines",
+                            line=dict(color="#1f1f1f", width=2),
+                            name="Fit",
+                        )
+                    )
+            scatter_fig.update_layout(
+                title="Win-Lose Unit Quantity Distribution",
+                xaxis_title="Lose Unit Quantity",
+                yaxis_title="Win Unit Quantity",
+                showlegend=False,
+            )
+            figs.append(scatter_fig)
+
+        if self._data.has_eval:
+            per_round: dict[int, dict[str, int]] = {}
+            for r, c, w, n in zip(
+                self._data.rounds,
+                self._data.human_correct,
+                self._data.human_wrong,
+                self._data.human_neutral,
+            ):
+                bucket = per_round.setdefault(r, {"correct": 0, "wrong": 0, "neutral": 0})
+                bucket["correct"] += c
+                bucket["wrong"] += w
+                bucket["neutral"] += n
+
+            total_correct = sum(self._data.human_correct)
+            total_wrong = sum(self._data.human_wrong)
+            total_neutral = sum(self._data.human_neutral)
+            total_humans = total_correct + total_wrong + total_neutral
+            if total_humans <= 0:
+                total_correct = total_wrong = total_neutral = 0
+                total_humans = 1
+            overall_rates = [
+                total_correct / total_humans,
+                total_neutral / total_humans,
+                total_wrong / total_humans,
+            ]
+
+            overall_fig = go.Figure(
+                data=[
+                    go.Bar(
+                        name="Correct",
+                        y=["Overall"],
+                        x=[overall_rates[0]],
+                        orientation="h",
+                        marker_color="#2ca02c",
+                    ),
+                    go.Bar(
+                        name="Neutral",
+                        y=["Overall"],
+                        x=[overall_rates[1]],
+                        orientation="h",
+                        marker_color="#7f7f7f",
+                    ),
+                    go.Bar(
+                        name="Wrong",
+                        y=["Overall"],
+                        x=[overall_rates[2]],
+                        orientation="h",
+                        marker_color="#d62728",
+                    ),
+                ]
+            )
+            overall_fig.update_layout(
+                title="Overall Human Outcomes",
+                barmode="stack",
+                xaxis_tickformat=".0%",
+                xaxis_title="Rate",
+                yaxis_title="",
+                legend_orientation="h",
+                legend_yanchor="bottom",
+                legend_y=1.01,
+                legend_xanchor="left",
+                legend_x=0,
+            )
+            figs.append(overall_fig)
+
+            round_keys = sorted(per_round.keys())
+            wrong_rate = []
+            neutral_rate = []
+            correct_rate = []
+            for r in round_keys:
+                bucket = per_round[r]
+                total = bucket["correct"] + bucket["wrong"] + bucket["neutral"]
+                if total <= 0:
+                    wrong_rate.append(0)
+                    neutral_rate.append(0)
+                    correct_rate.append(0)
+                else:
+                    wrong_rate.append(bucket["wrong"] / total)
+                    neutral_rate.append(bucket["neutral"] / total)
+                    correct_rate.append(bucket["correct"] / total)
+
+            perf_fig = go.Figure(
+                data=[
+                    go.Bar(name="Wrong", x=[str(r) for r in round_keys], y=wrong_rate, marker_color="#d62728"),
+                    go.Bar(name="Neutral", x=[str(r) for r in round_keys], y=neutral_rate, marker_color="#7f7f7f"),
+                    go.Bar(name="Correct", x=[str(r) for r in round_keys], y=correct_rate, marker_color="#2ca02c"),
+                ]
+            )
+            perf_fig.update_layout(
+                title="Human Outcomes by Round",
+                barmode="stack",
+                yaxis_title="Rate",
+                yaxis_tickformat=".0%",
+            )
+            figs.append(perf_fig)
+
+        return figs
+
+    def build_rows(self) -> list[dict[str, Any]]:
+        rows: list[dict[str, Any]] = []
+        total_side_slots = self._data.sample_count * 2 if self._data.sample_count > 0 else 0
+        for class_id in sorted(self._data.class_stats.keys()):
+            stats = self._data.class_stats[class_id]
+            appearances = stats.appearances
+            total_qty = stats.total_qty
+            win_rate = stats.wins / appearances if appearances > 0 else 0.0
+            appearance_rate = appearances / total_side_slots if total_side_slots > 0 else 0.0
+            avg_qty = total_qty / appearances if appearances > 0 else 0.0
+
+            round_values = stats.rounds
+            if round_values:
+                median_round = statistics.median(round_values)
+                median_round_value: float | None = _format_number(float(median_round))
             else:
-                wrong_rate.append(bucket["wrong"] / total)
-                neutral_rate.append(bucket["neutral"] / total)
-                correct_rate.append(bucket["correct"] / total)
+                median_round_value = None
 
-        perf_fig = go.Figure(
-            data=[
-                go.Bar(name="Wrong", x=[str(r) for r in round_keys], y=wrong_rate, marker_color="#d62728"),
-                go.Bar(name="Neutral", x=[str(r) for r in round_keys], y=neutral_rate, marker_color="#7f7f7f"),
-                go.Bar(name="Correct", x=[str(r) for r in round_keys], y=correct_rate, marker_color="#2ca02c"),
-            ]
-        )
-        perf_fig.update_layout(
-            title="Human Outcomes by Round",
-            barmode="stack",
-            yaxis_title="Rate",
-            yaxis_tickformat=".0%",
-        )
-        figs.append(perf_fig)
+            name = self._data.names.get(class_id, f"class_{class_id}")
+            rows.append(
+                {
+                    "class_id": class_id,
+                    "name": name,
+                    "avatar": _avatar_markdown(name),
+                    "appearances": appearances,
+                    "appearance_rate": appearance_rate,
+                    "median_round": median_round_value,
+                    "avg_qty": _format_number(avg_qty),
+                    "win_rate": win_rate,
+                }
+            )
 
-    rows: list[dict[str, str]] = []
-    total_side_slots = sample_count * 2 if sample_count > 0 else 0
-    for class_id in sorted(class_stats.keys()):
-        stats = class_stats[class_id]
-        appearances = stats["appearances"]
-        total_qty = stats["total_qty"]
-        win_rate = stats["wins"] / appearances if appearances > 0 else 0.0
-        appearance_rate = appearances / total_side_slots if total_side_slots > 0 else 0.0
-        avg_qty = total_qty / appearances if appearances > 0 else 0.0
+        rows.sort(key=lambda row: int(row["appearances"]), reverse=True)
+        return rows
 
-        round_values = stats["rounds"]
-        if round_values:
-            median_round = statistics.median(round_values)
-            median_round_value: float | None = _format_number(float(median_round))
-        else:
-            median_round_value = None
 
-        name = names.get(class_id, f"class_{class_id}")
-        rows.append(
-            {
-                "class_id": class_id,
-                "name": name,
-                "avatar": _avatar_markdown(name),
-                "appearances": appearances,
-                "appearance_rate": appearance_rate,
-                "median_round": median_round_value,
-                "avg_qty": _format_number(avg_qty),
-                "win_rate": win_rate,
-            }  # type: ignore
-        )
-
-    rows.sort(key=lambda row: int(row["appearances"]), reverse=True)
-
+def _build_report(dataset_path: str) -> tuple[str, list[tuple[str, str]], list[go.Figure], list[dict[str, Any]]]:
+    builder = ReportBuilder(dataset_path)
+    builder.collect()
+    title = "Ark Guesser Dataset Report"
+    summary = builder.build_summary()
+    figs = builder.build_figures()
+    rows = builder.build_rows()
     return title, summary, figs, rows
 
 
@@ -340,7 +420,7 @@ def _build_app(title: str, summary: list[tuple[str, str]], figs: list[go.Figure]
   }}
   .grid {{
     display: grid;
-        grid-template-columns: repeat(2, minmax(320px, 1fr));
+    grid-template-columns: repeat(2, minmax(320px, 1fr));
     gap: 20px;
     margin-top: 20px;
   }}
@@ -423,7 +503,7 @@ def _build_app(title: str, summary: list[tuple[str, str]], figs: list[go.Figure]
         style_cell={
             "padding": "8px 10px",
             "fontFamily": '"Segoe UI Variable", "Segoe UI", "Noto Sans SC", sans-serif',
-            "fontSize": "14px",
+            "fontSize": "18px",
             "lineHeight": "1.3",
             "border": "1px solid #e6e0d8",
             "backgroundColor": "#ffffff",
@@ -431,14 +511,12 @@ def _build_app(title: str, summary: list[tuple[str, str]], figs: list[go.Figure]
         style_header={
             "fontWeight": "700",
             "backgroundColor": "#f3eee7",
-            "fontSize": "14px",
-            "letterSpacing": "0.3px",
-            "textTransform": "uppercase",
+            "fontSize": "16px",
             "border": "1px solid #e6e0d8",
         },
         style_filter={
             "backgroundColor": "#fbf9f6",
-            "fontSize": "13px",
+            "fontSize": "14px",
             "border": "1px solid #e6e0d8",
         },
         style_data={
