@@ -1,3 +1,12 @@
+"""Training pipeline for ArkGuesserModelV2 with improved training strategies.
+
+Improvements over src/train.py:
+  - CosineAnnealingWarmRestarts LR scheduler
+  - Label smoothing for better calibration
+  - Gradient clipping for training stability
+  - Smarter early stopping
+"""
+
 import os
 from collections import namedtuple
 
@@ -10,7 +19,6 @@ import matplotlib.pyplot as plt
 from matplotlib import ticker, axes
 
 from src.dataset import RawArkGuesserDataset, AugArkGuesserDataset
-from src.model import ArkGuesserModelV1
 from src.model_v2 import ArkGuesserModelV2
 
 TrainingRecord = namedtuple("TrainingRecord", ["epoch", "train_loss", "train_acc", "valid_loss", "valid_acc"])
@@ -22,6 +30,7 @@ def train_one_epoch(
     optimizer: optim.Optimizer,
     criterion: nn.Module,
     device: torch.device,
+    max_norm: float = 1.0,
 ):
     model.train()
     total_loss = 0.0
@@ -33,6 +42,7 @@ def train_one_epoch(
         logits = model(x)
         loss = criterion(logits, y)
         loss.backward()
+        nn.utils.clip_grad_norm_(model.parameters(), max_norm)
         optimizer.step()
         total_loss += loss.item() * x.size(0)
         preds = logits.argmax(dim=-1)
@@ -67,7 +77,7 @@ def validate_one_epoch(
     return avg_loss, acc
 
 
-def visualize_records(records: list[TrainingRecord], output_path: str = "outputs/training_metrics.png"):
+def visualize_records(records: list[TrainingRecord], output_path: str = "outputs/training_metrics_v2.png"):
     if not records:
         return
 
@@ -80,7 +90,6 @@ def visualize_records(records: list[TrainingRecord], output_path: str = "outputs
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
     assert isinstance(ax1, axes.Axes) and isinstance(ax2, axes.Axes)
 
-    # Left subplot for losses
     ax1.xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: round(x)))
     ax1.plot(epochs, train_losses, label="Train Loss", color="blue", marker="x")
     ax1.plot(epochs, valid_losses, label="Valid Loss", color="red", marker="*")
@@ -88,7 +97,7 @@ def visualize_records(records: list[TrainingRecord], output_path: str = "outputs
     ax1.set_ylabel("Loss")
     ax1.yaxis.set_major_formatter(ticker.FuncFormatter(lambda y, _: f"{y:.4f}"))
     ax1.legend(loc="upper left")
-    ax1.set_title("Loss")
+    ax1.set_title("Loss (V2)")
 
     best_valid_loss_epoch = min(range(len(records)), key=lambda i: records[i].valid_loss) + 1
     best_valid_loss_record = records[best_valid_loss_epoch - 1]
@@ -99,7 +108,6 @@ def visualize_records(records: list[TrainingRecord], output_path: str = "outputs
         arrowprops=dict(arrowstyle="->"),
     )
 
-    # Right subplot for accuracies
     ax2.xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: round(x)))
     ax2.plot(epochs, train_accs, label="Train Accuracy", color="blue", marker="x", linestyle="--")
     ax2.plot(epochs, valid_accs, label="Valid Accuracy", color="red", marker="*", linestyle="--")
@@ -107,7 +115,7 @@ def visualize_records(records: list[TrainingRecord], output_path: str = "outputs
     ax2.set_ylabel("Accuracy")
     ax2.yaxis.set_major_formatter(ticker.FuncFormatter(lambda y, _: f"{y:.2%}"))
     ax2.legend(loc="upper left")
-    ax2.set_title("Accuracy")
+    ax2.set_title("Accuracy (V2)")
 
     best_valid_acc_epoch = max(range(len(records)), key=lambda i: records[i].valid_acc) + 1
     best_valid_acc_record = records[best_valid_acc_epoch - 1]
@@ -127,13 +135,22 @@ def visualize_records(records: list[TrainingRecord], output_path: str = "outputs
     plt.close()
 
 
-def main(dataset_path: str, model_path: str, model_version: str = "v1"):
-    # Config
-    batch_size = 64
-    num_epochs = 100
-    lr = 1e-3
+def train_main(
+    dataset_path: str,
+    model_path: str,
+    *,
+    batch_size: int = 64,
+    num_epochs: int = 100,
+    patience_epochs: int = 15,
+    lr: float = 1e-3,
+    label_smoothing: float = 0.1,
+    seed: int = 42,
+    quiet: bool = False,
+) -> tuple[list[TrainingRecord], float, float]:
+    """Train ArkGuesserModelV2 and return (records, best_valid_acc, train_time_s)."""
+    import time
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    seed = 42
     torch.manual_seed(seed)
 
     # Dataset
@@ -155,53 +172,63 @@ def main(dataset_path: str, model_path: str, model_version: str = "v1"):
         shuffle=False,
         collate_fn=RawArkGuesserDataset.collate_fn,
     )
-    print(f"Dataset loaded: {n_total} raw samples ({n_train} train, {n_valid} valid)")
+    if not quiet:
+        print(f"Dataset loaded: {n_total} raw samples ({n_train} train, {n_valid} valid)")
 
-    # Prepare model
-    if model_version == "v2":
-        model = ArkGuesserModelV2(dataset.num_classes)
-        patience_epochs = 15
-        print(f"Using model: ArkGuesserModelV2")
-    else:
-        model = ArkGuesserModelV1(dataset.num_classes)
-        patience_epochs = max(2, num_epochs // 2)
-        print(f"Using model: ArkGuesserModelV1")
-
+    # Prepare training
+    model = ArkGuesserModelV2(dataset.num_classes)
     model.to(device)
-    criterion = nn.CrossEntropyLoss()
+    if not quiet:
+        param_count = sum(p.numel() for p in model.parameters())
+        print(f"Model V2 parameters: {param_count:,}")
+
+    criterion = nn.CrossEntropyLoss(label_smoothing=label_smoothing)
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=1e-6)
+    scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=20, T_mult=2)
 
     # Run training
     worse_epochs = 0
     records = []
     best_epoch = 0
     best_state = None
+    t0 = time.perf_counter()
+
     for epoch in range(1, num_epochs + 1):
         train_loss, train_acc = train_one_epoch(model, train_loader, optimizer, criterion, device)
         valid_loss, valid_acc = validate_one_epoch(model, valid_loader, criterion, device)
         records.append(TrainingRecord(epoch, train_loss, train_acc, valid_loss, valid_acc))
+        scheduler.step()
 
-        print(f"Epoch {epoch:03d}: train_loss={train_loss:.4f}, valid_loss={valid_loss:.4f}, acc={valid_acc:.2%}")
+        if not quiet:
+            print(f"Epoch {epoch:03d}: train_loss={train_loss:.4f}, valid_loss={valid_loss:.4f}, acc={valid_acc:.2%}")
 
         if best_epoch == 0 or valid_loss * (1 - valid_acc) < (
             records[best_epoch - 1].valid_loss * (1 - records[best_epoch - 1].valid_acc)
         ):
             best_epoch = epoch
-            best_state = model.state_dict()
+            best_state = {k: v.cpu().clone() for k, v in model.state_dict().items()}
             worse_epochs = 0
         else:
             worse_epochs += 1
             if worse_epochs >= patience_epochs:
-                print("Early stopped")
+                if not quiet:
+                    print(f"Early stopped at epoch {epoch}")
                 break
 
+    t1 = time.perf_counter()
+    train_time = t1 - t0
+
     best_record = records[best_epoch - 1]
-    print(f"Best epoch={best_epoch} with valid_loss={best_record.valid_loss:.4f}, acc={best_record.valid_acc:.2%}")
+    if not quiet:
+        print(f"Best epoch={best_epoch} with valid_loss={best_record.valid_loss:.4f}, acc={best_record.valid_acc:.2%}")
 
     model_dir = os.path.dirname(model_path)
     if model_dir:
         os.makedirs(model_dir, exist_ok=True)
     torch.save(best_state, model_path)
-    print(f"Best ckpt saved to {model_path}")
+    if not quiet:
+        print(f"Best ckpt saved to {model_path}")
 
     visualize_records(records)
+
+    return records, best_record.valid_acc, train_time

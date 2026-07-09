@@ -22,6 +22,12 @@ def main():
     train_parser = subparsers.add_parser("train", help="Train the model")
     train_parser.add_argument("dataset_path", help="Path to the dataset JSON file")
     train_parser.add_argument("model_path", help="Path to save the trained model")
+    train_parser.add_argument(
+        "-M", "--model",
+        choices=["v1", "v2"],
+        default="v1",
+        help="Model version to use (default: v1)",
+    )
 
     # Subcommand: gui
     subparsers.add_parser("gui", help="Prepare and launch GUI")
@@ -30,12 +36,24 @@ def main():
     eval_parser = subparsers.add_parser("eval", help="Evaluate the model")
     eval_parser.add_argument("dataset_path", help="Path to the evaluation dataset JSON file")
     eval_parser.add_argument("model_path", help="Path to the trained model")
+    eval_parser.add_argument(
+        "-M", "--model",
+        choices=["v1", "v2"],
+        default="v1",
+        help="Model version to use (default: v1)",
+    )
 
     # Subcommand: infer
     infer_parser = subparsers.add_parser("infer", help="Run inference on image files")
     infer_parser.add_argument("dataset_path", help="Path to dataset JSON file")
     infer_parser.add_argument("model_path", help="Path to trained model")
     infer_parser.add_argument("image_path", help="Image file or directory")
+    infer_parser.add_argument(
+        "-M", "--model",
+        choices=["v1", "v2"],
+        default="v1",
+        help="Model version to use (default: v1)",
+    )
 
     # Subcommand: dataset_visualize
     viz_parser = subparsers.add_parser("dataset_visualize", help="Generate dataset HTML report")
@@ -59,7 +77,7 @@ def main():
     elif args.command == "train":
         from src.train import main as train_main
 
-        train_main(args.dataset_path, args.model_path)
+        train_main(args.dataset_path, args.model_path, model_version=args.model)
 
     elif args.command == "gui":
         from src.gui import prepare_deps, start_gui
@@ -70,12 +88,12 @@ def main():
     elif args.command == "eval":
         from src.eval import main as eval_main
 
-        eval_main(args.dataset_path, args.model_path)
+        eval_main(args.dataset_path, args.model_path, model_version=args.model)
 
     elif args.command == "infer":
         from src.infer import main as infer_main
 
-        infer_main(args.dataset_path, args.model_path, args.image_path)
+        infer_main(args.dataset_path, args.model_path, args.image_path, model_version=args.model)
 
     elif args.command == "dataset_visualize":
         from src.dataset_visualizer import main as dataset_visualize_main

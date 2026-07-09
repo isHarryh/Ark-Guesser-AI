@@ -8,6 +8,7 @@ import torch
 from src.dataset import RawArkGuesserDataset
 from src.dataset_generator import GameRoundRecognizer
 from src.model import ArkGuesserModelV1
+from src.model_v2 import ArkGuesserModelV2
 from src.utils import imread
 
 
@@ -17,9 +18,12 @@ class InferResult(NamedTuple):
 
 
 class InferService:
-    def __init__(self, dataset_path: str, model_path: str):
+    def __init__(self, dataset_path: str, model_path: str, model_version: str = "v1"):
         self._dataset = RawArkGuesserDataset(dataset_path)
-        self._model = ArkGuesserModelV1(num_classes=self._dataset.num_classes)
+        if model_version == "v2":
+            self._model = ArkGuesserModelV2(num_classes=self._dataset.num_classes)
+        else:
+            self._model = ArkGuesserModelV1(num_classes=self._dataset.num_classes)
         self._model.load_state_dict(torch.load(model_path, map_location="cpu"))
         self._model.eval()
 
@@ -63,8 +67,8 @@ def _collect_images(path: str) -> list[str]:
     return sorted(files)
 
 
-def main(dataset_path: str, model_path: str, image_path: str) -> None:
-    service = InferService(dataset_path, model_path)
+def main(dataset_path: str, model_path: str, image_path: str, model_version: str = "v1") -> None:
+    service = InferService(dataset_path, model_path, model_version=model_version)
     images = _collect_images(image_path)
     if not images:
         raise FileNotFoundError("No images found")
