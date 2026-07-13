@@ -10,8 +10,7 @@ import matplotlib.pyplot as plt
 from matplotlib import ticker, axes
 
 from src.dataset import RawArkGuesserDataset, AugArkGuesserDataset
-from src.model import ArkGuesserModelV1
-from src.model_v2 import ArkGuesserModelV2
+from src.model import ArkGuesserModelV1, ArkGuesserModelV2
 
 TrainingRecord = namedtuple("TrainingRecord", ["epoch", "train_loss", "train_acc", "valid_loss", "valid_acc"])
 
