@@ -7,8 +7,7 @@ import torch
 
 from src.dataset import RawArkGuesserDataset
 from src.dataset_generator import GameRoundRecognizer
-from src.model import ArkGuesserModelV1
-from src.model_v2 import ArkGuesserModelV2
+from src.model import ArkGuesserModelV1, ArkGuesserModelV2
 from src.utils import imread
 
 

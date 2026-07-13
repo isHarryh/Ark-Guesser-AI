@@ -5,8 +5,7 @@ import matplotlib.pyplot as plt
 from matplotlib import ticker
 
 from src.dataset import RawEvalArkGuesserDataset
-from src.model import ArkGuesserModelV1
-from src.model_v2 import ArkGuesserModelV2
+from src.model import ArkGuesserModelV1, ArkGuesserModelV2
 
 
 def regroup(stats: dict, k: int):
