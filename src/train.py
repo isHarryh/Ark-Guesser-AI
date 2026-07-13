@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from matplotlib import ticker, axes
 
 from src.dataset import RawArkGuesserDataset, AugArkGuesserDataset
-from src.model import ArkGuesserModelV1
+from src.model import ArkGuesserModelV1, ArkGuesserModelV2
 
 TrainingRecord = namedtuple("TrainingRecord", ["epoch", "train_loss", "train_acc", "valid_loss", "valid_acc"])
 
@@ -126,11 +126,10 @@ def visualize_records(records: list[TrainingRecord], output_path: str = "outputs
     plt.close()
 
 
-def main(dataset_path: str, model_path: str):
+def main(dataset_path: str, model_path: str, model_version: str = "v1"):
     # Config
     batch_size = 64
     num_epochs = 100
-    patience_epochs = max(2, num_epochs // 2)
     lr = 1e-3
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     seed = 42
@@ -157,8 +156,16 @@ def main(dataset_path: str, model_path: str):
     )
     print(f"Dataset loaded: {n_total} raw samples ({n_train} train, {n_valid} valid)")
 
-    # Prepare training
-    model = ArkGuesserModelV1(dataset.num_classes)
+    # Prepare model
+    if model_version == "v2":
+        model = ArkGuesserModelV2(dataset.num_classes)
+        patience_epochs = 15
+        print(f"Using model: ArkGuesserModelV2")
+    else:
+        model = ArkGuesserModelV1(dataset.num_classes)
+        patience_epochs = max(2, num_epochs // 2)
+        print(f"Using model: ArkGuesserModelV1")
+
     model.to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=1e-6)

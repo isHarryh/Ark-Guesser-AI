@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from matplotlib import ticker
 
 from src.dataset import RawEvalArkGuesserDataset
-from src.model import ArkGuesserModelV1
+from src.model import ArkGuesserModelV1, ArkGuesserModelV2
 
 
 def regroup(stats: dict, k: int):
@@ -294,7 +294,7 @@ def visualize(model_stats: dict, human_stats: dict, k: int = 2):
     print("Visualization saved to outputs/performance_comparison.png")
 
 
-def main(dataset_path: str, model_path: str):
+def main(dataset_path: str, model_path: str, model_version: str = "v1"):
     # Config
     device = torch.device("cpu")
 
@@ -309,7 +309,12 @@ def main(dataset_path: str, model_path: str):
     print(f"Dataset loaded: {len(dataset)} samples")
 
     # Load model
-    model = ArkGuesserModelV1(dataset.num_classes)
+    if model_version == "v2":
+        model = ArkGuesserModelV2(dataset.num_classes)
+        print(f"Using model: ArkGuesserModelV2")
+    else:
+        model = ArkGuesserModelV1(dataset.num_classes)
+        print(f"Using model: ArkGuesserModelV1")
     model.load_state_dict(torch.load(model_path, map_location=device))
     model.to(device)
     model.eval()
